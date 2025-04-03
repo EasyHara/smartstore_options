@@ -65,6 +65,7 @@
       const rows = document.querySelectorAll("#inputTable tbody tr");
       let mainPrice = 0;
       let mainName = "";
+      let baseFilename = "smartstore_options";
       let count = 1;
       let output = [];
 
@@ -73,12 +74,14 @@
           if (row.cells[0].querySelector("input").checked) {
             mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
             mainName = row.cells[5].querySelector("input").value.trim();
+            baseFilename = mainName || row.cells[1].querySelector("input").value.trim();
           }
         });
       } else {
         const row = rows[selectedMainIndex];
         mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
         mainName = row.cells[5].querySelector("input").value.trim();
+        baseFilename = mainName || row.cells[1].querySelector("input").value.trim();
       }
 
       rows.forEach((row, index) => {
@@ -121,7 +124,8 @@
       const ws = XLSX.utils.json_to_sheet(output);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-      const filename = selectedMainIndex === null ? "smartstore_options.xls" : `smartstore_options_main${selectedMainIndex + 1}.xls`;
+      const safeFilename = baseFilename.replace(/[\\/:*?"<>|]/g, "_").slice(0, 50);
+      const filename = `${safeFilename}.xls`;
       XLSX.writeFile(wb, filename);
     }
 
