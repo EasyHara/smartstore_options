@@ -86,8 +86,8 @@
         const colors = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
         const sizes = row.cells[4].querySelector("input").value.trim().split(/[,/]/);
         const altName = row.cells[5].querySelector("input").value.trim();
-        const soldOutColors = row.cells[6].querySelector("input").value.trim().split(/[,/]/).map(v => v.trim().toString());
-        const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/).map(v => v.trim().toString());
+        const soldOutColors = row.cells[6].querySelector("input").value.trim().split(/[,/]/).map(v => v.toString().trim());
+        const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/).map(v => v.toString().trim());
 
         const displayName = isMain ? altName : productName;
         const prefix = String(count).padStart(2, '0') + ") ";
@@ -95,9 +95,9 @@
 
         colors.forEach(color => {
           sizes.forEach(size => {
-            const colorTrimmed = color.trim();
-            const sizeTrimmed = size.trim();
-            const isSoldOut = soldOutColors.includes(colorTrimmed.toString()) || soldOutSizes.includes(sizeTrimmed.toString());
+            const colorTrimmed = color.toString().trim();
+            const sizeTrimmed = size.toString().trim();
+            const isSoldOut = soldOutColors.includes(colorTrimmed) || soldOutSizes.includes(sizeTrimmed);
             output.push({
               제품선택: fullName,
               색상: colorTrimmed,
