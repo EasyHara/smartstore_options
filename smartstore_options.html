@@ -66,10 +66,7 @@
       let mainPrice = 0;
       let mainName = "";
       let filenameBase = "smartstore_options";
-      let count = 1;
-      let output = [];
-      let mainOutput = [];
-      let subOutput = [];
+      let groupOutput = [];
 
       if (selectedMainIndex === null) {
         rows.forEach((row, index) => {
@@ -84,7 +81,7 @@
       mainName = rowMain.cells[1].querySelector("input").value.trim();
       filenameBase = mainName;
 
-      const makeOutput = (row, isMain) => {
+      const makeOptionGroup = (row, isMain) => {
         const productName = row.cells[1].querySelector("input").value.trim();
         const price = parseInt(row.cells[2].querySelector("input").value) || 0;
         const colors = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
@@ -94,13 +91,13 @@
         const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/).map(v => v.toString().trim());
         const displayName = isMain ? altName : productName;
 
-        let result = [];
+        let options = [];
         colors.forEach(color => {
           sizes.forEach(size => {
             const colorTrimmed = color.toString().trim();
             const sizeTrimmed = size.toString().trim();
             const isSoldOut = soldOutColors.includes(colorTrimmed) || soldOutSizes.includes(sizeTrimmed);
-            result.push({
+            options.push({
               displayName,
               색상: colorTrimmed,
               사이즈: sizeTrimmed,
@@ -111,27 +108,37 @@
             });
           });
         });
-        return result;
+        return { name: displayName, options };
       };
 
+      const allGroups = [];
       rows.forEach((row, index) => {
         if (row.cells[8].querySelector("input").checked) return;
         const isMain = index === selectedMainIndex;
-        const result = makeOutput(row, isMain);
-        if (isMain) mainOutput = result;
-        else subOutput.push(...result);
+        const group = makeOptionGroup(row, isMain);
+        if (isMain) {
+          allGroups.unshift(group); // 대표 상품은 앞에
+        } else {
+          allGroups.push(group);
+        }
       });
 
-      const finalOutput = [...mainOutput, ...subOutput].map((item, idx) => {
-        return {
-          제품선택: `${String(idx + 1).padStart(2, '0')}) ${item.displayName}`,
-          색상: item.색상,
-          사이즈: item.사이즈,
-          옵션가: item.옵션가,
-          재고수량: item.재고수량,
-          관리코드: item.관리코드,
-          사용여부: item.사용여부
-        };
+      let count = 1;
+      const finalOutput = [];
+      allGroups.forEach(group => {
+        const prefix = `${String(count).padStart(2, '0')}) `;
+        group.options.forEach(opt => {
+          finalOutput.push({
+            제품선택: prefix + group.name,
+            색상: opt.색상,
+            사이즈: opt.사이즈,
+            옵션가: opt.옵션가,
+            재고수량: opt.재고수량,
+            관리코드: opt.관리코드,
+            사용여부: opt.사용여부
+          });
+        });
+        count++;
       });
 
       const ws = XLSX.utils.json_to_sheet(finalOutput);
