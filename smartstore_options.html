@@ -68,27 +68,23 @@
       let filenameBase = "smartstore_options";
       let count = 1;
       let output = [];
+      let mainOutput = [];
+      let subOutput = [];
 
       if (selectedMainIndex === null) {
         rows.forEach((row, index) => {
           if (row.cells[0].querySelector("input").checked) {
-            mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
-            mainName = row.cells[1].querySelector("input").value.trim();
-            filenameBase = mainName;
+            selectedMainIndex = index;
           }
         });
-      } else {
-        const row = rows[selectedMainIndex];
-        mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
-        mainName = row.cells[1].querySelector("input").value.trim();
-        filenameBase = mainName;
       }
 
-      rows.forEach((row, index) => {
-        const isExcluded = row.cells[8].querySelector("input").checked;
-        if (isExcluded) return;
+      const rowMain = rows[selectedMainIndex];
+      mainPrice = parseInt(rowMain.cells[2].querySelector("input").value) || 0;
+      mainName = rowMain.cells[1].querySelector("input").value.trim();
+      filenameBase = mainName;
 
-        const isMain = index === selectedMainIndex || (selectedMainIndex === null && row.cells[0].querySelector("input").checked);
+      const makeOutput = (row, isMain) => {
         const productName = row.cells[1].querySelector("input").value.trim();
         const price = parseInt(row.cells[2].querySelector("input").value) || 0;
         const colors = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
@@ -96,18 +92,16 @@
         const altName = row.cells[5].querySelector("input").value.trim();
         const soldOutColors = row.cells[6].querySelector("input").value.trim().split(/[,/]/).map(v => v.toString().trim());
         const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/).map(v => v.toString().trim());
-
         const displayName = isMain ? altName : productName;
-        const prefix = String(count).padStart(2, '0') + ") ";
-        const fullName = prefix + displayName;
 
+        let result = [];
         colors.forEach(color => {
           sizes.forEach(size => {
             const colorTrimmed = color.toString().trim();
             const sizeTrimmed = size.toString().trim();
             const isSoldOut = soldOutColors.includes(colorTrimmed) || soldOutSizes.includes(sizeTrimmed);
-            output.push({
-              제품선택: fullName,
+            result.push({
+              displayName,
               색상: colorTrimmed,
               사이즈: sizeTrimmed,
               옵션가: isMain ? 0 : price - mainPrice,
@@ -117,11 +111,30 @@
             });
           });
         });
+        return result;
+      };
 
-        count++;
+      rows.forEach((row, index) => {
+        if (row.cells[8].querySelector("input").checked) return;
+        const isMain = index === selectedMainIndex;
+        const result = makeOutput(row, isMain);
+        if (isMain) mainOutput = result;
+        else subOutput.push(...result);
       });
 
-      const ws = XLSX.utils.json_to_sheet(output);
+      const finalOutput = [...mainOutput, ...subOutput].map((item, idx) => {
+        return {
+          제품선택: `${String(idx + 1).padStart(2, '0')}) ${item.displayName}`,
+          색상: item.색상,
+          사이즈: item.사이즈,
+          옵션가: item.옵션가,
+          재고수량: item.재고수량,
+          관리코드: item.관리코드,
+          사용여부: item.사용여부
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(finalOutput);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       const safeFilename = filenameBase.replace(/[\\/:*?"<>|]/g, "_").slice(0, 50);
