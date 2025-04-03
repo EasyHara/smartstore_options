@@ -53,8 +53,8 @@
         <td><input type="text" value="${data.색상 || ''}"></td>
         <td><input type="text" value="${data.사이즈 || ''}"></td>
         <td><input type="text" value="${data.대표상품명 || ''}"></td>
-        <td><input type="text" value="${data.색상품절 || ''}"></td>
-        <td><input type="text" value="${data.사이즈품절 || ''}"></td>
+        <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
       `;
       table.appendChild(row);
     }
@@ -86,8 +86,8 @@
         const colors = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
         const sizes = row.cells[4].querySelector("input").value.trim().split(/[,/]/);
         const altName = row.cells[5].querySelector("input").value.trim();
-        const soldOutColors = row.cells[6].querySelector("input").value.trim().split(/[,/]/);
-        const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/);
+        const soldOutColors = row.cells[6].querySelector("input").value.trim().split(/[,/]/).map(v => v.trim().toString());
+        const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/).map(v => v.trim().toString());
 
         const displayName = isMain ? altName : productName;
         const prefix = String(count).padStart(2, '0') + ") ";
@@ -97,7 +97,7 @@
           sizes.forEach(size => {
             const colorTrimmed = color.trim();
             const sizeTrimmed = size.trim();
-            const isSoldOut = soldOutColors.includes(colorTrimmed) || soldOutSizes.includes(sizeTrimmed);
+            const isSoldOut = soldOutColors.includes(colorTrimmed.toString()) || soldOutSizes.includes(sizeTrimmed.toString());
             output.push({
               제품선택: fullName,
               색상: colorTrimmed,
