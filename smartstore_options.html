@@ -58,45 +58,49 @@
       const rows = document.querySelectorAll("#inputTable tbody tr");
       let mainPrice = 0;
       let mainName = "";
-      let output = [];
+      let mainIndex = 1;
       let count = 1;
+      let output = [];
 
       rows.forEach(row => {
         const isMain = row.cells[0].querySelector("input").checked;
         if (isMain) {
           mainPrice = parseInt(row.cells[4].querySelector("input").value) || 0;
-          mainName = row.cells[5].querySelector("input").value || "";
+          mainName = row.cells[5].querySelector("input").value.trim();
         }
       });
 
       rows.forEach(row => {
         const isMain = row.cells[0].querySelector("input").checked;
-        const name = row.cells[1].querySelector("input").value.trim();
+        const productName = row.cells[1].querySelector("input").value.trim();
         const colors = row.cells[2].querySelector("input").value.trim().split(/[,/]/);
         const sizes = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
         const price = parseInt(row.cells[4].querySelector("input").value) || 0;
-        const productName = row.cells[5].querySelector("input").value.trim();
+        const altName = row.cells[5].querySelector("input").value.trim();
         const soldOutColors = row.cells[6].querySelector("input").value.trim().split(/[,/]/);
         const soldOutSizes = row.cells[7].querySelector("input").value.trim().split(/[,/]/);
 
+        const displayName = isMain ? altName : productName;
+        const prefix = String(count).padStart(2, '0') + ") ";
+        const fullName = prefix + displayName;
+
         colors.forEach(color => {
           sizes.forEach(size => {
-            const isSoldOut = soldOutColors.includes(color.trim()) || soldOutSizes.includes(size.trim());
-            const optionName = isMain ? productName : name;
-            const optionPrice = isMain ? 0 : price - mainPrice;
+            const colorTrimmed = color.trim();
+            const sizeTrimmed = size.trim();
+            const isSoldOut = soldOutColors.includes(colorTrimmed) || soldOutSizes.includes(sizeTrimmed);
             output.push({
-              순번: String(count).padStart(2, '0') + ")",
-              상품명: optionName,
-              색상: color.trim(),
-              사이즈: size.trim(),
-              옵션가: optionPrice,
+              제품선택: fullName,
+              색상: colorTrimmed,
+              옵션가: isMain ? 0 : price - mainPrice,
               재고수량: isSoldOut ? 0 : 99999,
-              관리코드: name,
+              관리코드: productName,
               사용여부: "Y"
             });
-            count++;
           });
         });
+
+        count++;
       });
 
       const ws = XLSX.utils.json_to_sheet(output);
