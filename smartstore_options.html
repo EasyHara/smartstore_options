@@ -13,11 +13,15 @@
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .center { text-align: center; }
     button { padding: 10px 20px; margin-top: 20px; }
+    .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
   <h2>스마트스토어 옵션 자동 생성기</h2>
-  <input type="file" id="excelFile" accept=".xlsx" />
+  <div class="top-bar">
+    <input type="file" id="excelFile" accept=".xlsx" />
+    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+  </div>
   <table id="inputTable">
     <thead>
       <tr>
@@ -107,6 +111,16 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       XLSX.writeFile(wb, "smartstore_options.xlsx");
+    }
+
+    function downloadTemplate() {
+      const headers = [
+        "상품명", "색상", "사이즈", "판매가", "대표상품명", "대표여부", "색상품절", "사이즈품절"
+      ];
+      const ws = XLSX.utils.aoa_to_sheet([headers]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "양식");
+      XLSX.writeFile(wb, "smartstore_template.xlsx");
     }
 
     document.getElementById("excelFile").addEventListener("change", function(e) {
