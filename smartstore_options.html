@@ -33,6 +33,7 @@
         <th>1번 상품명</th>
         <th>품절된 색상 입력</th>
         <th>품절된 사이즈 입력</th>
+        <th>제외</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -55,6 +56,7 @@
         <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
         <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
         <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
+        <td class="center"><input type="checkbox" ${data.제외 === 'Y' ? 'checked' : ''}></td>
       `;
       table.appendChild(row);
     }
@@ -80,6 +82,9 @@
       }
 
       rows.forEach((row, index) => {
+        const isExcluded = row.cells[8].querySelector("input").checked;
+        if (isExcluded) return;
+
         const isMain = index === selectedMainIndex || (selectedMainIndex === null && row.cells[0].querySelector("input").checked);
         const productName = row.cells[1].querySelector("input").value.trim();
         const price = parseInt(row.cells[2].querySelector("input").value) || 0;
