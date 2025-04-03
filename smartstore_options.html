@@ -14,6 +14,7 @@
     .center { text-align: center; }
     button { padding: 10px 20px; margin-top: 20px; margin-right: 10px; }
     .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .options-bar { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -21,6 +22,9 @@
   <div class="top-bar">
     <input type="file" id="excelFile" accept=".xlsx" />
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+  </div>
+  <div class="options-bar">
+    <label><input type="checkbox" id="appendColorToName"> 상품명+색상</label>
   </div>
   <table id="inputTable">
     <thead>
@@ -67,6 +71,7 @@
       let mainName = "";
       let filenameBase = "smartstore_options";
       let groupOutput = [];
+      const appendColor = document.getElementById("appendColorToName").checked;
 
       if (selectedMainIndex === null) {
         rows.forEach((row, index) => {
@@ -97,8 +102,9 @@
             const colorTrimmed = color.toString().trim();
             const sizeTrimmed = size.toString().trim();
             const isSoldOut = soldOutColors.includes(colorTrimmed) || soldOutSizes.includes(sizeTrimmed);
+            const fullName = appendColor ? `${displayName} / ${colorTrimmed}` : displayName;
             options.push({
-              displayName,
+              displayName: fullName,
               색상: colorTrimmed,
               사이즈: sizeTrimmed,
               옵션가: isMain ? 0 : price - mainPrice,
@@ -117,7 +123,7 @@
         const isMain = index === selectedMainIndex;
         const group = makeOptionGroup(row, isMain);
         if (isMain) {
-          allGroups.unshift(group); // 대표 상품은 앞에
+          allGroups.unshift(group);
         } else {
           allGroups.push(group);
         }
@@ -129,7 +135,7 @@
         const prefix = `${String(count).padStart(2, '0')}) `;
         group.options.forEach(opt => {
           finalOutput.push({
-            제품선택: prefix + group.name,
+            제품선택: prefix + opt.displayName,
             색상: opt.색상,
             사이즈: opt.사이즈,
             옵션가: opt.옵션가,
