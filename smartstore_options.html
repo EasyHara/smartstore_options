@@ -12,7 +12,7 @@
     th { background-color: #f0f0f0; }
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .center { text-align: center; }
-    button { padding: 10px 20px; margin-top: 20px; }
+    button { padding: 10px 20px; margin-top: 20px; margin-right: 10px; }
     .top-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   </style>
 </head>
@@ -39,7 +39,8 @@
   </table>
 
   <button onclick="addRow()">+ 행 추가</button>
-  <button onclick="generateExcel()">엑셀 다운로드</button>
+  <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
+  <button onclick="generateAllMainExcel()">일괄 엑셀 다운로드</button>
 
   <script>
     function addRow(data = {}) {
@@ -58,23 +59,28 @@
       table.appendChild(row);
     }
 
-    function generateExcel() {
+    function generateExcel(selectedMainIndex = null) {
       const rows = document.querySelectorAll("#inputTable tbody tr");
       let mainPrice = 0;
       let mainName = "";
       let count = 1;
       let output = [];
 
-      rows.forEach(row => {
-        const isMain = row.cells[0].querySelector("input").checked;
-        if (isMain) {
-          mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
-          mainName = row.cells[5].querySelector("input").value.trim();
-        }
-      });
+      if (selectedMainIndex === null) {
+        rows.forEach((row, index) => {
+          if (row.cells[0].querySelector("input").checked) {
+            mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
+            mainName = row.cells[5].querySelector("input").value.trim();
+          }
+        });
+      } else {
+        const row = rows[selectedMainIndex];
+        mainPrice = parseInt(row.cells[2].querySelector("input").value) || 0;
+        mainName = row.cells[5].querySelector("input").value.trim();
+      }
 
-      rows.forEach(row => {
-        const isMain = row.cells[0].querySelector("input").checked;
+      rows.forEach((row, index) => {
+        const isMain = index === selectedMainIndex || (selectedMainIndex === null && row.cells[0].querySelector("input").checked);
         const productName = row.cells[1].querySelector("input").value.trim();
         const price = parseInt(row.cells[2].querySelector("input").value) || 0;
         const colors = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
@@ -109,7 +115,15 @@
       const ws = XLSX.utils.json_to_sheet(output);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-      XLSX.writeFile(wb, "smartstore_options.xlsx");
+      const fileName = selectedMainIndex === null ? "smartstore_options.xls" : `smartstore_options_main${selectedMainIndex + 1}.xls`;
+      XLSX.writeFile(wb, fileName);
+    }
+
+    function generateAllMainExcel() {
+      const rows = document.querySelectorAll("#inputTable tbody tr");
+      rows.forEach((_, index) => {
+        generateExcel(index);
+      });
     }
 
     function downloadTemplate() {
