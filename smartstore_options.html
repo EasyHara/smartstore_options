@@ -115,8 +115,8 @@
       const ws = XLSX.utils.json_to_sheet(output);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-      const fileName = selectedMainIndex === null ? "smartstore_options.xls" : `smartstore_options_main${selectedMainIndex + 1}.xls`;
-      XLSX.writeFile(wb, fileName);
+      const filename = selectedMainIndex === null ? "smartstore_options.xls" : `smartstore_options_main${selectedMainIndex + 1}.xls`;
+      XLSX.writeFile(wb, filename);
     }
 
     function generateAllMainExcel() {
