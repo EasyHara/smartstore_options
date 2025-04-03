@@ -30,9 +30,9 @@
         <th>색상(콤마 또는 /)</th>
         <th>사이즈(콤마 또는 /)</th>
         <th>판매가</th>
-        <th>1번 상품명 (대표시)</th>
-        <th>색상 품절</th>
-        <th>사이즈 품절</th>
+        <th>1번 상품명</th>
+        <th>품절된 색상 입력</th>
+        <th>품절된 사이즈 입력</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -62,7 +62,6 @@
       const rows = document.querySelectorAll("#inputTable tbody tr");
       let mainPrice = 0;
       let mainName = "";
-      let mainIndex = 1;
       let count = 1;
       let output = [];
 
@@ -115,7 +114,7 @@
 
     function downloadTemplate() {
       const headers = [
-        "상품명", "색상", "사이즈", "판매가", "대표상품명", "대표여부", "색상품절", "사이즈품절"
+        "상품명", "색상", "사이즈", "판매가", "1번 상품명", "품절된 색상 입력", "품절된 사이즈 입력"
       ];
       const ws = XLSX.utils.aoa_to_sheet([headers]);
       const wb = XLSX.utils.book_new();
