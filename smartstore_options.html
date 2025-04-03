@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>스마트스토어 옵션 자동 생성기</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f0f0f0; }
+    input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
+    .center { text-align: center; }
+    button { padding: 10px 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>스마트스토어 옵션 자동 생성기</h2>
+  <table id="inputTable">
+    <thead>
+      <tr>
+        <th>대표</th>
+        <th>상품명</th>
+        <th>색상(콤마 또는 /)</th>
+        <th>사이즈(콤마 또는 /)</th>
+        <th>판매가</th>
+        <th>1번 상품명 (대표시)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="center"><input type="radio" name="mainItem" checked></td>
+        <td><input type="text" value="K2 쿨토시"></td>
+        <td><input type="text" value="블랙,화이트"></td>
+        <td><input type="text" value="FREE"></td>
+        <td><input type="number" value="9000"></td>
+        <td><input type="text" value="K2 심리스 쿨토시 세트"></td>
+      </tr>
+      <tr>
+        <td class="center"><input type="radio" name="mainItem"></td>
+        <td><input type="text" value="K2 쿨토시"></td>
+        <td><input type="text" value="차콜"></td>
+        <td><input type="text" value="FREE"></td>
+        <td><input type="number" value="9400"></td>
+        <td><input type="text"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button onclick="addRow()">+ 행 추가</button>
+  <button onclick="generateExcel()">엑셀 다운로드</button>
+
+  <script>
+    function addRow() {
+      const table = document.getElementById("inputTable").getElementsByTagName('tbody')[0];
+      const newRow = table.rows[0].cloneNode(true);
+      [...newRow.querySelectorAll("input")].forEach(input => {
+        if (input.type === "radio") input.checked = false;
+        else input.value = "";
+      });
+      table.appendChild(newRow);
+    }
+
+    function generateExcel() {
+      const rows = document.querySelectorAll("#inputTable tbody tr");
+      let mainPrice = 0;
+      let mainName = "";
+      let output = [];
+      let count = 1;
+
+      // 먼저 대표 상품 찾기
+      rows.forEach(row => {
+        const isMain = row.cells[0].querySelector("input").checked;
+        if (isMain) {
+          mainPrice = parseInt(row.cells[4].querySelector("input").value) || 0;
+          mainName = row.cells[5].querySelector("input").value || "";
+        }
+      });
+
+      rows.forEach(row => {
+        const isMain = row.cells[0].querySelector("input").checked;
+        const name = row.cells[1].querySelector("input").value.trim();
+        const colors = row.cells[2].querySelector("input").value.trim().split(/[,/]/);
+        const sizes = row.cells[3].querySelector("input").value.trim().split(/[,/]/);
+        const price = parseInt(row.cells[4].querySelector("input").value) || 0;
+
+        colors.forEach(color => {
+          sizes.forEach(size => {
+            const optionName = isMain ? mainName : name;
+            const optionPrice = price - mainPrice;
+            output.push({
+              순번: count++,
+              상품명: optionName,
+              색상: color.trim(),
+              사이즈: size.trim(),
+              판매가: price,
+              옵션가: optionPrice
+            });
+          });
+        });
+      });
+
+      // 엑셀 생성
+      const ws = XLSX.utils.json_to_sheet(output);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+      XLSX.writeFile(wb, "smartstore_options.xlsx");
+    }
+  </script>
+</body>
+</html>
