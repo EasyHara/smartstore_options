@@ -61,7 +61,10 @@
     <button onclick="saveTemplate()">제목으로 저장</button>
   </div>
 
-  <div class="template-list" id="templateList"></div>
+  <div class="template-list">
+    <button onclick="deleteSelectedTemplates()">선택된 양식 삭제</button>
+    <div id="templateList"></div>
+  </div>
 
   <script>
     const templateStorageKey = 'smartstore_templates';
@@ -113,13 +116,23 @@
         item.className = 'template-item';
         item.innerHTML = `
           <div>
-            <b>${title}</b><br>
+            <label><input type="checkbox" class="template-checkbox" value="${title}"> <b>${title}</b></label><br>
             <small>생성: ${new Date(info.created).toLocaleString()} | 수정: ${new Date(info.modified).toLocaleString()}</small>
           </div>
           <button onclick="loadTemplate('${title}')">불러오기</button>
         `;
         container.appendChild(item);
       });
+    }
+
+    function deleteSelectedTemplates() {
+      const confirmed = confirm('정말 삭제하시겠습니까?');
+      if (!confirmed) return;
+      const templates = JSON.parse(localStorage.getItem(templateStorageKey) || '{}');
+      const checked = document.querySelectorAll('.template-checkbox:checked');
+      checked.forEach(cb => delete templates[cb.value]);
+      localStorage.setItem(templateStorageKey, JSON.stringify(templates));
+      updateTemplateList();
     }
 
     function loadTemplate(title) {
