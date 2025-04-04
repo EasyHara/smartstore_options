@@ -70,8 +70,10 @@
       const title = document.getElementById('templateTitle').value.trim();
       if (!title) return alert('제목을 입력해주세요.');
 
-      const now = new Date();
-      const data = Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
+      const rows = Array.from(document.querySelectorAll('#inputTable tbody tr'));
+      if (rows.length === 0) return alert('입력된 데이터가 없습니다.');
+
+      const data = rows.map(row => {
         return {
           대표여부: row.cells[0].querySelector('input').checked ? 'O' : '',
           상품명: row.cells[1].querySelector('input').value,
@@ -85,6 +87,10 @@
         };
       });
 
+      const hasContent = data.some(d => d.상품명 || d.판매가 || d.색상 || d.사이즈);
+      if (!hasContent) return alert('내용이 없는 양식은 저장할 수 없습니다.');
+
+      const now = new Date();
       const templates = JSON.parse(localStorage.getItem(templateStorageKey) || '{}');
       const existing = templates[title];
       templates[title] = {
