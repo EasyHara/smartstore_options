@@ -19,6 +19,7 @@
     .template-list-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
     .template-list { border: 1px solid #ccc; padding: 10px; }
     .template-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; }
+    .trash-button { position: fixed; bottom: 20px; right: 20px; background-color: #eee; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
@@ -68,8 +69,16 @@
   </div>
   <div class="template-list" id="templateList"></div>
 
+  <button class="trash-button" onclick="openTrashBin()">휴지통 바로가기</button>
+
+  <div id="trashBin" style="display:none; margin-top:30px">
+    <h3>휴지통</h3>
+    <div id="trashList"></div>
+  </div>
+
   <script>
     const templateStorageKey = 'smartstore_templates';
+    const trashStorageKey = 'smartstore_trash';
 
     function saveTemplate() {
       const title = document.getElementById('templateTitle').value.trim();
@@ -130,10 +139,23 @@
     function deleteSelectedTemplates() {
       const confirmed = confirm('정말 삭제하시겠습니까?');
       if (!confirmed) return;
+
       const templates = JSON.parse(localStorage.getItem(templateStorageKey) || '{}');
+      const trash = JSON.parse(localStorage.getItem(trashStorageKey) || '{}');
       const checked = document.querySelectorAll('.template-checkbox:checked');
-      checked.forEach(cb => delete templates[cb.value]);
+
+      checked.forEach(cb => {
+        if (templates[cb.value]) {
+          trash[cb.value] = {
+            ...templates[cb.value],
+            deletedAt: new Date().toISOString()
+          };
+          delete templates[cb.value];
+        }
+      });
+
       localStorage.setItem(templateStorageKey, JSON.stringify(templates));
+      localStorage.setItem(trashStorageKey, JSON.stringify(trash));
       updateTemplateList();
     }
 
@@ -144,6 +166,53 @@
       const tbody = document.querySelector('#inputTable tbody');
       tbody.innerHTML = '';
       data.forEach(row => addRow(row));
+      document.getElementById('templateTitle').value = title;
+    }
+
+    function openTrashBin() {
+      const trashDiv = document.getElementById('trashBin');
+      const trashList = document.getElementById('trashList');
+      const trash = JSON.parse(localStorage.getItem(trashStorageKey) || '{}');
+
+      trashDiv.style.display = 'block';
+      trashList.innerHTML = '';
+
+      const now = new Date();
+      Object.entries(trash).forEach(([title, info]) => {
+        const deletedDate = new Date(info.deletedAt);
+        const diffDays = (now - deletedDate) / (1000 * 60 * 60 * 24);
+        if (diffDays < 7) {
+          const item = document.createElement('div');
+          item.className = 'template-item';
+          item.innerHTML = `
+            <div>
+              <b>${title}</b><br>
+              <small>삭제일: ${deletedDate.toLocaleString()}</small>
+            </div>
+            <button onclick="restoreTemplate('${title}')">복원</button>
+          `;
+          trashList.appendChild(item);
+        }
+      });
+    }
+
+    function restoreTemplate(title) {
+      const trash = JSON.parse(localStorage.getItem(trashStorageKey) || '{}');
+      const templates = JSON.parse(localStorage.getItem(templateStorageKey) || '{}');
+
+      if (!trash[title]) return alert('복원할 수 없습니다.');
+
+      templates[title] = {
+        data: trash[title].data,
+        created: trash[title].created,
+        modified: new Date().toISOString()
+      };
+      delete trash[title];
+
+      localStorage.setItem(templateStorageKey, JSON.stringify(templates));
+      localStorage.setItem(trashStorageKey, JSON.stringify(trash));
+      updateTemplateList();
+      openTrashBin();
     }
 
     function clearAllRows() {
