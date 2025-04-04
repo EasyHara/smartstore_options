@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -17,18 +16,16 @@
     #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
     .section { margin-top: 30px; }
     .hidden { display: none; }
-    .saved-template { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ccc; }
-    .saved-template span { flex: 1; }
     .right-align { text-align: right; }
   </style>
 </head>
 <body>
   <h2>스마트스토어 옵션 자동 생성기</h2>
 
-<div class="top-bar">
-  <input type="file" id="excelFile" accept=".xlsx" />
-  <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-  <button onclick="addRow()">+ 행 추가</button>
+  <div class="top-bar">
+    <input type="file" id="excelFile" accept=".xlsx" />
+    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+    <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearAll()">초기화</button>
     <label><input type="checkbox" id="useNameColor"> 상품명+색상</label>
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
@@ -59,17 +56,17 @@
 
     function addRow(data = {}) {
       const tr = document.createElement('tr');
-      tr.innerHTML = \`
+      tr.innerHTML = `
         <td><input type="radio" name="main"></td>
-        <td><input type="text" value="\${data['상품명'] || ''}"></td>
-        <td><input type="number" value="\${data['판매가'] || ''}"></td>
-        <td><input type="text" value="\${data['색상'] || ''}"></td>
-        <td><input type="text" value="\${data['사이즈'] || ''}"></td>
-        <td><input type="text" value="\${data['1번 상품명'] || ''}"></td>
-        <td><input type="text" value="\${data['품절된 색상 입력'] || ''}"></td>
-        <td><input type="text" value="\${data['품절된 사이즈 입력'] || ''}"></td>
-        <td><input type="checkbox" \${data['제외'] ? 'checked' : ''}></td>
-      \`;
+        <td><input type="text" value="${data['상품명'] || ''}"></td>
+        <td><input type="number" value="${data['판매가'] || ''}"></td>
+        <td><input type="text" value="${data['색상'] || ''}"></td>
+        <td><input type="text" value="${data['사이즈'] || ''}"></td>
+        <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
+        <td><input type="checkbox" ${data['제외'] ? 'checked' : ''}></td>
+      `;
       tableBody.appendChild(tr);
     }
 
@@ -85,12 +82,26 @@
       XLSX.writeFile(wb, 'smartstore_template.xlsx');
     }
 
+    document.getElementById('excelFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+        clearAll();
+        json.forEach(row => addRow(row));
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
     function generateExcel() {
-      const rows = [...tableBody.querySelectorAll("tr")];
+      const rows = [...document.querySelectorAll("#inputTable tbody tr")];
       const wb = XLSX.utils.book_new();
       const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
       const useColor = document.getElementById("useNameColor").checked;
-
       const mainRowIndex = rows.findIndex(row => row.querySelector("input[type='radio']")?.checked);
       if (mainRowIndex === -1) return alert("대표 상품을 선택하세요.");
 
@@ -113,18 +124,18 @@
 
         colors.forEach(color => {
           sizes.forEach(size => {
-            const productText = useColor ? \`\${String(order).padStart(2, '0')}) \${name} / \${color}\` : \`\${String(order).padStart(2, '0')}) \${idx === mainRowIndex ? mainName : name}\`;
+            const productText = (idx === mainRowIndex ? '01' : String(order).padStart(2, '0')) + ") " + (useColor ? `${name} / ${color}` : name);
             const optionPrice = idx === mainRowIndex ? 0 : price - mainPrice;
             const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-            wsData.push([productText, color, size, optionPrice, stock, name, "Y"]);
+            wsData.push([productText, useColor ? '' : color, size, optionPrice, stock, name, "Y"]);
           });
         });
-        order++;
+        if (idx !== mainRowIndex) order++;
       });
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-      XLSX.writeFile(wb, \`\${mainName}.xls\`);
+      XLSX.writeFile(wb, `${mainName}.xls`);
     }
 
     function generateAllMainExcelZip() {
@@ -137,7 +148,6 @@
         if (inputs[8].checked) return;
 
         const name = inputs[1].value;
-        const price = parseInt(inputs[2].value) || 0;
         const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
         const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
         const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
@@ -148,9 +158,9 @@
 
         colors.forEach(color => {
           sizes.forEach(size => {
-            const productText = useColor ? \`\${String(order).padStart(2, '0')}) \${name} / \${color}\` : \`\${String(order).padStart(2, '0')}) \${name}\`;
+            const productText = `${String(order).padStart(2, '0')}) ${useColor ? name + ' / ' + color : name}`;
             const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-            wsData.push([productText, color, size, 0, stock, name, "Y"]);
+            wsData.push([productText, useColor ? '' : color, size, 0, stock, name, "Y"]);
           });
         });
 
@@ -159,7 +169,7 @@
         XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
         const wbout = XLSX.write(wb, { bookType: 'xls', type: 'binary' });
 
-        zip.file(\`\${name}.xls\`, new Blob([s2ab(wbout)], { type: "application/octet-stream" }));
+        zip.file(`${name}.xls`, new Blob([s2ab(wbout)], { type: "application/octet-stream" }));
       });
 
       zip.generateAsync({ type: "blob" }).then(content => {
@@ -176,21 +186,6 @@
       for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
       return buf;
     }
-
-    document.getElementById("excelFile").addEventListener("change", function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-        clearAll();
-        json.forEach(row => addRow(row));
-      };
-      reader.readAsArrayBuffer(file);
-    });
   </script>
 </body>
 </html>
