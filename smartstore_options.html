@@ -13,8 +13,9 @@
     th { background-color: #f0f0f0; }
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .center { text-align: center; }
-    button { padding: 10px 20px; margin-top: 20px; margin-right: 10px; }
-    .top-bar, .options-bar, .save-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    button { padding: 10px 20px; margin-right: 10px; }
+    .top-bar, .options-bar, .action-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .save-bar { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
     .template-list { margin-top: 10px; border: 1px solid #ccc; padding: 10px; }
     .template-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; }
   </style>
@@ -31,12 +32,11 @@
     <label><input type="checkbox" id="appendColorToName"> 상품명+색상</label>
   </div>
 
-  <div class="save-bar">
-    <input type="text" id="templateTitle" placeholder="양식 제목 입력" style="flex:1">
-    <button onclick="saveTemplate()">제목으로 저장</button>
+  <div class="action-bar">
+    <button onclick="addRow()">+ 행 추가</button>
+    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
+    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
-
-  <div class="template-list" id="templateList"></div>
 
   <table id="inputTable">
     <thead>
@@ -55,9 +55,12 @@
     <tbody></tbody>
   </table>
 
-  <button onclick="addRow()">+ 행 추가</button>
-  <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-  <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
+  <div class="save-bar">
+    <input type="text" id="templateTitle" placeholder="양식 제목 입력" style="flex:1">
+    <button onclick="saveTemplate()">제목으로 저장</button>
+  </div>
+
+  <div class="template-list" id="templateList"></div>
 
   <script>
     const templateStorageKey = 'smartstore_templates';
@@ -121,7 +124,6 @@
       data.forEach(row => addRow(row));
     }
 
-    // 기존 내용 유지
     document.getElementById("excelFile").addEventListener("change", function(e) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -137,6 +139,23 @@
       };
       reader.readAsArrayBuffer(file);
     });
+
+    function addRow(data = {}) {
+      const table = document.querySelector("#inputTable tbody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="center"><input type="radio" name="mainItem" ${data.대표여부 === 'O' ? 'checked' : ''}></td>
+        <td><input type="text" value="${data.상품명 || ''}"></td>
+        <td><input type="number" value="${data.판매가 || ''}"></td>
+        <td><input type="text" value="${data.색상 || ''}"></td>
+        <td><input type="text" value="${data.사이즈 || ''}"></td>
+        <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
+        <td class="center"><input type="checkbox" ${data.제외 === 'Y' ? 'checked' : ''}></td>
+      `;
+      table.appendChild(row);
+    }
 
     updateTemplateList();
     addRow();
