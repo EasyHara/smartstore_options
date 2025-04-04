@@ -6,12 +6,14 @@
   <title>스마트스토어 옵션 자동 생성기</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
+    body { font-family: sans-serif; padding: 20px; overflow-x: auto; overflow-y: auto; }
     table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background-color: #f0f0f0; }
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .top-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    #inputTable-container { max-height: 600px; overflow-y: auto; }
+    .section { margin-top: 30px; }
   </style>
 </head>
 <body>
@@ -23,20 +25,27 @@
     <button onclick="addRow()">+ 행 추가</button>
   </div>
 
-  <table id="inputTable">
-    <thead>
-      <tr>
-        <th>상품명</th>
-        <th>판매가</th>
-        <th>색상</th>
-        <th>사이즈</th>
-        <th>1번 상품명</th>
-        <th>품절된 색상 입력</th>
-        <th>품절된 사이즈 입력</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div id="inputTable-container">
+    <table id="inputTable">
+      <thead>
+        <tr>
+          <th>상품명</th>
+          <th>판매가</th>
+          <th>색상</th>
+          <th>사이즈</th>
+          <th>1번 상품명</th>
+          <th>품절된 색상 입력</th>
+          <th>품절된 사이즈 입력</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>향후 기능 추가 영역</h3>
+    <p>양식 저장, 목록 표시 등 기능 추가 예정</p>
+  </div>
 
   <script>
     function addRow(data = {}) {
