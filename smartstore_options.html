@@ -14,8 +14,8 @@
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .center { text-align: center; }
     button { padding: 10px 20px; margin-right: 10px; }
-    .top-bar, .options-bar, .action-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .save-bar { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+    .top-bar, .options-bar, .save-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .save-bar { margin-top: 20px; }
     .template-list { margin-top: 10px; border: 1px solid #ccc; padding: 10px; }
     .template-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; }
   </style>
@@ -30,12 +30,8 @@
 
   <div class="options-bar">
     <label><input type="checkbox" id="appendColorToName"> 상품명+색상</label>
-  </div>
-
-  <div class="action-bar">
     <button onclick="addRow()">+ 행 추가</button>
-    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
+    <button onclick="clearAllRows()">초기화</button>
   </div>
 
   <table id="inputTable">
@@ -54,6 +50,11 @@
     </thead>
     <tbody></tbody>
   </table>
+
+  <div class="button-bar">
+    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
+    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
+  </div>
 
   <div class="save-bar">
     <input type="text" id="templateTitle" placeholder="양식 제목 입력" style="flex:1">
@@ -122,6 +123,11 @@
       const tbody = document.querySelector('#inputTable tbody');
       tbody.innerHTML = '';
       data.forEach(row => addRow(row));
+    }
+
+    function clearAllRows() {
+      const tbody = document.querySelector('#inputTable tbody');
+      tbody.innerHTML = '';
     }
 
     document.getElementById("excelFile").addEventListener("change", function(e) {
