@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>스마트스토어 옵션 자동 생성기</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스마트스토어 옵션 자동 생성기</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
     body { font-family: sans-serif; padding: 20px; }
     table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
@@ -17,39 +16,38 @@
     #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
     .section { margin-top: 30px; }
     .hidden { display: none; }
-    .saved-template { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ccc; }
-    .saved-template span { flex: 1; }
     .right-align { text-align: right; }
   </style>
 </head>
 <body>
-<h2>스마트스토어 옵션 자동 생성기</h2>
-<div class="top-bar">
-<input accept=".xlsx" id="excelFile" type="file"/>
-<button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-<button onclick="addRow()">+ 행 추가</button>
-<button onclick="clearAll()">초기화</button>
-<button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-<button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
-</div>
-<div id="inputTable-container">
-<table id="inputTable">
-<thead>
-<tr>
-<th>대표</th>
-<th>상품명</th>
-<th>판매가</th>
-<th>색상</th>
-<th>사이즈</th>
-<th>1번 상품명</th>
-<th>품절된 색상 입력</th>
-<th>품절된 사이즈 입력</th>
-<th>제외</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-</div>
+  <h2>스마트스토어 옵션 자동 생성기</h2>
+  <div class="top-bar">
+    <input type="file" id="excelFile" accept=".xlsx" />
+    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+    <button onclick="addRow()">+ 행 추가</button>
+    <button onclick="clearAll()">초기화</button>
+    <label><input type="checkbox" id="combineColor"> 상품명+색상</label>
+    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
+    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
+  </div>
+  <div id="inputTable-container">
+    <table id="inputTable">
+      <thead>
+        <tr>
+          <th>대표</th>
+          <th>상품명</th>
+          <th>판매가</th>
+          <th>색상</th>
+          <th>사이즈</th>
+          <th>1번 상품명</th>
+          <th>품절된 색상 입력</th>
+          <th>품절된 사이즈 입력</th>
+          <th>제외</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 <div class="button-bar">
 <input id="templateTitle" placeholder="양식 제목 입력" type="text"/>
 <button onclick="saveTemplateByTitle()">제목으로 저장</button>
