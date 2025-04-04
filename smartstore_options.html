@@ -105,7 +105,7 @@
             const fullName = appendColor ? `${displayName} / ${colorTrimmed}` : displayName;
             options.push({
               displayName: fullName,
-              색상: appendColor ? "" : colorTrimmed,
+              색상: appendColor ? undefined : colorTrimmed,
               사이즈: sizeTrimmed,
               옵션가: isMain ? 0 : price - mainPrice,
               재고수량: isSoldOut ? 0 : 99999,
@@ -134,15 +134,16 @@
       allGroups.forEach(group => {
         const prefix = `${String(count).padStart(2, '0')}) `;
         group.options.forEach(opt => {
-          finalOutput.push({
+          const item = {
             제품선택: prefix + opt.displayName,
-            색상: opt.색상,
             사이즈: opt.사이즈,
             옵션가: opt.옵션가,
             재고수량: opt.재고수량,
             관리코드: opt.관리코드,
             사용여부: opt.사용여부
-          });
+          };
+          if (!appendColor) item["색상"] = opt.색상;
+          finalOutput.push(item);
         });
         count++;
       });
