@@ -5,26 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>스마트스토어 옵션 자동 생성기</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background-color: #f0f0f0; }
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
-    .center { text-align: center; }
-    button { padding: 10px 20px; margin-right: 10px; }
-    .top-bar, .save-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .save-bar { margin-top: 20px; }
-    .template-list-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
-    .template-list { border: 1px solid #ccc; padding: 10px; }
-    .trash-button { position: fixed; bottom: 20px; right: 20px; background-color: #eee; border: 1px solid #ccc; }
-    .options-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-    .options-left { display: flex; align-items: center; gap: 10px; }
-    .options-right { display: flex; align-items: center; gap: 10px; }
-    .template-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .template-table th, .template-table td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-    .template-table th { background-color: #f0f0f0; }
+    .top-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -33,154 +20,68 @@
   <div class="top-bar">
     <input type="file" id="excelFile" accept=".xlsx" />
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-  </div>
-
-  <div class="options-bar">
-    <div class="options-left">
-      <label><input type="checkbox" id="appendColorToName"> 상품명+색상</label>
-    </div>
-    <div class="options-right">
-      <button onclick="addRow()">+ 행 추가</button>
-      <button onclick="clearAllRows()">초기화</button>
-    </div>
+    <button onclick="addRow()">+ 행 추가</button>
   </div>
 
   <table id="inputTable">
     <thead>
       <tr>
-        <th>대표</th>
         <th>상품명</th>
         <th>판매가</th>
-        <th>색상(콤마 또는 /)</th>
-        <th>사이즈(콤마 또는 /)</th>
+        <th>색상</th>
+        <th>사이즈</th>
         <th>1번 상품명</th>
         <th>품절된 색상 입력</th>
         <th>품절된 사이즈 입력</th>
-        <th>제외</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <div class="button-bar">
-    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
-  </div>
-
-  <div class="save-bar">
-    <input type="text" id="templateTitle" placeholder="양식 제목 입력" style="flex:1">
-    <button onclick="saveTemplate()">제목으로 저장</button>
-  </div>
-
-  <div class="template-list-header">
-    <b>저장된 양식 목록</b>
-    <button onclick="deleteSelectedTemplates()">선택된 양식 삭제</button>
-  </div>
-
-  <div class="template-list" id="templateList">
-    <table class="template-table">
-      <thead>
-        <tr>
-          <th style="width:30px;"><input type="checkbox" onclick="toggleAllTemplates(this)"></th>
-          <th>제목</th>
-          <th>메모</th>
-          <th>생성일</th>
-          <th>수정일</th>
-          <th style="width:80px;">불러오기</th>
-        </tr>
-      </thead>
-      <tbody id="templateTableBody"></tbody>
-    </table>
-  </div>
-
-  <button class="trash-button" onclick="openTrashBin()">휴지통 바로가기</button>
-  <div id="trashBin" style="display:none; margin-top:30px">
-    <h3>휴지통</h3>
-    <div id="trashList"></div>
-  </div>
-
   <script>
-    function openTrashBin() {
-      const trashDiv = document.getElementById('trashBin');
-      const trashList = document.getElementById('trashList');
-      const trash = JSON.parse(localStorage.getItem('smartstore_trash') || '{}');
-      const now = new Date();
-      let hasContent = false;
-      trashList.innerHTML = '';
-      Object.entries(trash).forEach(([title, info]) => {
-        const deletedDate = new Date(info.deletedAt);
-        const diffDays = (now - deletedDate) / (1000 * 60 * 60 * 24);
-        const remainingDays = Math.ceil(7 - diffDays);
-        if (diffDays < 7) {
-          hasContent = true;
-          const item = document.createElement('div');
-          item.className = 'template-item';
-          item.innerHTML = `
-            <div>
-              <b>${title}</b><br>
-              <small>삭제일: ${deletedDate.toLocaleString()} | 남은 보관일: ${remainingDays}일</small>
-            </div>
-            <button onclick="restoreTemplate('${title}')">복원</button>
-          `;
-          trashList.appendChild(item);
-        }
-      });
-      if (!hasContent) {
-        alert('휴지통이 비어있습니다.');
-        trashDiv.style.display = 'none';
-      } else {
-        trashDiv.style.display = 'block';
-        const notice = document.createElement('p');
-        notice.innerText = '휴지통은 삭제일로부터 7일 후 자동 비워집니다.';
-        notice.style.fontSize = '0.9em';
-        notice.style.color = '#555';
-        trashList.prepend(notice);
-      }
+    function addRow(data = {}) {
+      const tbody = document.querySelector('#inputTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" value="${data['상품명'] || ''}"></td>
+        <td><input type="number" value="${data['판매가'] || ''}"></td>
+        <td><input type="text" value="${data['색상'] || ''}"></td>
+        <td><input type="text" value="${data['사이즈'] || ''}"></td>
+        <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
+      `;
+      tbody.appendChild(tr);
     }
 
-    function renderTemplateList() {
-      const list = JSON.parse(localStorage.getItem('smartstore_templates') || '{}');
-      const tbody = document.getElementById('templateTableBody');
+    function populateTable(data) {
+      const tbody = document.querySelector('#inputTable tbody');
       tbody.innerHTML = '';
-      Object.entries(list).forEach(([title, info]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><input type="checkbox" value="${title}"></td>
-          <td><input type="text" value="${title}" onchange="updateTemplateTitle('${title}', this.value)"></td>
-          <td><input type="text" value="${info.memo || ''}" onchange="updateTemplateMemo('${title}', this.value)"></td>
-          <td>${new Date(info.createdAt).toLocaleString()}</td>
-          <td>${new Date(info.updatedAt).toLocaleString()}</td>
-          <td><button onclick="loadTemplate('${title}')">불러오기</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
+      data.forEach(row => addRow(row));
     }
 
-    function toggleAllTemplates(checkbox) {
-      document.querySelectorAll('#templateTableBody input[type=checkbox]').forEach(cb => cb.checked = checkbox.checked);
-    }
+    document.getElementById('excelFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+        populateTable(json);
+      };
+      reader.readAsArrayBuffer(file);
+    });
 
-    function updateTemplateTitle(oldTitle, newTitle) {
-      const templates = JSON.parse(localStorage.getItem('smartstore_templates') || '{}');
-      if (newTitle && oldTitle !== newTitle && !templates[newTitle]) {
-        templates[newTitle] = { ...templates[oldTitle], updatedAt: new Date().toISOString() };
-        delete templates[oldTitle];
-        localStorage.setItem('smartstore_templates', JSON.stringify(templates));
-        renderTemplateList();
-      } else {
-        alert('제목이 중복되었거나 유효하지 않습니다.');
-        renderTemplateList();
-      }
-    }
-
-    function updateTemplateMemo(title, memo) {
-      const templates = JSON.parse(localStorage.getItem('smartstore_templates') || '{}');
-      if (templates[title]) {
-        templates[title].memo = memo;
-        templates[title].updatedAt = new Date().toISOString();
-        localStorage.setItem('smartstore_templates', JSON.stringify(templates));
-        renderTemplateList();
-      }
+    function downloadTemplate() {
+      const ws_data = [
+        ['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 색상 입력', '품절된 사이즈 입력']
+      ];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, '양식');
+      XLSX.writeFile(wb, 'smartstore_template.xlsx');
     }
   </script>
 </body>
