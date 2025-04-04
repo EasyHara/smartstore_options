@@ -12,7 +12,7 @@
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background-color: #f0f0f0; }
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
-    .top-bar, .button-bar, .save-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .top-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
     .section { margin-top: 30px; }
     .hidden { display: none; }
@@ -29,7 +29,7 @@
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearAll()">초기화</button>
-    <label><input type="checkbox" id="combineNameColor"> 상품명+색상</label>
+    <label><input type="checkbox" id="combineNameColor" /> 상품명+색상</label>
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
     <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
@@ -53,22 +53,29 @@
     </table>
   </div>
 
-  <div class="save-bar">
-    <input type="text" id="templateTitle" placeholder="양식 제목 입력" style="flex:1;">
-    <button onclick="saveTemplate()">제목으로 저장</button>
+  <div class="button-bar">
+    <input type="text" id="templateTitle" placeholder="양식 제목 입력" />
+    <button onclick="saveTemplateByTitle()">제목으로 저장</button>
+    <button onclick="deleteSelectedTemplates()" style="margin-left:auto">선택된 양식 삭제</button>
   </div>
 
   <div class="section">
-    <div class="top-bar">
-      <span><strong>저장된 양식 목록</strong></span>
-      <button style="margin-left:auto" onclick="deleteSelectedTemplates()">선택된 양식 삭제</button>
-    </div>
-    <div id="templateList"></div>
+    <h3>저장된 양식 목록</h3>
+    <table id="templateList">
+      <thead>
+        <tr>
+          <th>선택</th><th>제목</th><th>메모</th><th>생성일</th><th>수정일</th><th>작업</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <div class="right-align section">
+  <div class="right-align" style="margin-top: 20px;">
     <button onclick="openTrash()">휴지통 바로가기</button>
   </div>
+
+  <script src="main.js"></script>
 
   <div class="section hidden" id="trashSection">
     <h3>휴지통</h3>
