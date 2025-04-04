@@ -105,7 +105,7 @@
             const fullName = appendColor ? `${displayName} / ${colorTrimmed}` : displayName;
             options.push({
               displayName: fullName,
-              색상: colorTrimmed,
+              색상: appendColor ? "" : colorTrimmed,
               사이즈: sizeTrimmed,
               옵션가: isMain ? 0 : price - mainPrice,
               재고수량: isSoldOut ? 0 : 99999,
