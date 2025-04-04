@@ -1,85 +1,36 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>스마트스토어 옵션 자동 생성기</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f0f0f0; }
-    input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
-    .center { text-align: center; }
-    button { padding: 10px 20px; margin-right: 10px; }
-    .top-bar, .save-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .save-bar { margin-top: 20px; }
-    .template-list-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
-    .template-list { border: 1px solid #ccc; padding: 10px; }
-    .template-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; }
-    .trash-button { position: fixed; bottom: 20px; right: 20px; background-color: #eee; border: 1px solid #ccc; }
-    .options-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-    .options-left { display: flex; align-items: center; gap: 10px; }
-    .options-right { display: flex; align-items: center; gap: 10px; }
-  </style>
-</head>
-<body>
-  <h2>스마트스토어 옵션 자동 생성기</h2>
+<script>
+function openTrashBin() {
+  const trashDiv = document.getElementById('trashBin');
+  const trashList = document.getElementById('trashList');
+  const trash = JSON.parse(localStorage.getItem('smartstore_trash') || '{}');
 
-  <div class="top-bar">
-    <input type="file" id="excelFile" accept=".xlsx" />
-    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-  </div>
+  const now = new Date();
+  let hasContent = false;
+  trashList.innerHTML = '';
 
-  <div class="options-bar">
-    <div class="options-left">
-      <label><input type="checkbox" id="appendColorToName"> 상품명+색상</label>
-    </div>
-    <div class="options-right">
-      <button onclick="addRow()">+ 행 추가</button>
-      <button onclick="clearAllRows()">초기화</button>
-    </div>
-  </div>
+  Object.entries(trash).forEach(([title, info]) => {
+    const deletedDate = new Date(info.deletedAt);
+    const diffDays = (now - deletedDate) / (1000 * 60 * 60 * 24);
+    if (diffDays < 7) {
+      hasContent = true;
+      const item = document.createElement('div');
+      item.className = 'template-item';
+      item.innerHTML = `
+        <div>
+          <b>${title}</b><br>
+          <small>삭제일: ${deletedDate.toLocaleString()}</small>
+        </div>
+        <button onclick="restoreTemplate('${title}')">복원</button>
+      `;
+      trashList.appendChild(item);
+    }
+  });
 
-  <table id="inputTable">
-    <thead>
-      <tr>
-        <th>대표</th>
-        <th>상품명</th>
-        <th>판매가</th>
-        <th>색상(콤마 또는 /)</th>
-        <th>사이즈(콤마 또는 /)</th>
-        <th>1번 상품명</th>
-        <th>품절된 색상 입력</th>
-        <th>품절된 사이즈 입력</th>
-        <th>제외</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <div class="button-bar">
-    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
-  </div>
-
-  <div class="save-bar">
-    <input type="text" id="templateTitle" placeholder="양식 제목 입력" style="flex:1">
-    <button onclick="saveTemplate()">제목으로 저장</button>
-  </div>
-
-  <div class="template-list-header">
-    <b>저장된 양식 목록</b>
-    <button onclick="deleteSelectedTemplates()">선택된 양식 삭제</button>
-  </div>
-  <div class="template-list" id="templateList"></div>
-  <button class="trash-button" onclick="openTrashBin()">휴지통 바로가기</button>
-
-  <div id="trashBin" style="display:none; margin-top:30px">
-    <h3>휴지통</h3>
-    <div id="trashList"></div>
-  </div>
-</body>
-</html>
+  if (!hasContent) {
+    alert('휴지통이 비어있습니다.');
+    trashDiv.style.display = 'none';
+  } else {
+    trashDiv.style.display = 'block';
+  }
+}
+</script>
