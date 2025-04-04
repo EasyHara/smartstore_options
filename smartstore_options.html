@@ -18,11 +18,13 @@
     .save-bar { margin-top: 20px; }
     .template-list-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
     .template-list { border: 1px solid #ccc; padding: 10px; }
-    .template-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #eee; }
     .trash-button { position: fixed; bottom: 20px; right: 20px; background-color: #eee; border: 1px solid #ccc; }
     .options-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
     .options-left { display: flex; align-items: center; gap: 10px; }
     .options-right { display: flex; align-items: center; gap: 10px; }
+    .template-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .template-table th, .template-table td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+    .template-table th { background-color: #f0f0f0; }
   </style>
 </head>
 <body>
@@ -74,9 +76,23 @@
     <b>저장된 양식 목록</b>
     <button onclick="deleteSelectedTemplates()">선택된 양식 삭제</button>
   </div>
-  <div class="template-list" id="templateList"></div>
-  <button class="trash-button" onclick="openTrashBin()">휴지통 바로가기</button>
 
+  <div class="template-list" id="templateList">
+    <table class="template-table">
+      <thead>
+        <tr>
+          <th style="width:30px;"><input type="checkbox" onclick="toggleAllTemplates(this)"></th>
+          <th>제목</th>
+          <th>생성일</th>
+          <th>수정일</th>
+          <th style="width:80px;">불러오기</th>
+        </tr>
+      </thead>
+      <tbody id="templateTableBody"></tbody>
+    </table>
+  </div>
+
+  <button class="trash-button" onclick="openTrashBin()">휴지통 바로가기</button>
   <div id="trashBin" style="display:none; margin-top:30px">
     <h3>휴지통</h3>
     <div id="trashList"></div>
@@ -122,6 +138,27 @@
         notice.style.color = '#555';
         trashList.prepend(notice);
       }
+    }
+
+    function renderTemplateList() {
+      const list = JSON.parse(localStorage.getItem('smartstore_templates') || '{}');
+      const tbody = document.getElementById('templateTableBody');
+      tbody.innerHTML = '';
+      Object.entries(list).forEach(([title, info]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" value="${title}"></td>
+          <td>${title}</td>
+          <td>${new Date(info.createdAt).toLocaleString()}</td>
+          <td>${new Date(info.updatedAt).toLocaleString()}</td>
+          <td><button onclick="loadTemplate('${title}')">불러오기</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function toggleAllTemplates(checkbox) {
+      document.querySelectorAll('#templateTableBody input[type=checkbox]').forEach(cb => cb.checked = checkbox.checked);
     }
 
     document.getElementById('excelFile').addEventListener('change', function (e) {
