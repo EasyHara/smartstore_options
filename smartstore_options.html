@@ -126,20 +126,43 @@
     });
 
     function generateExcel() {
-      const rows = [...tableBody.querySelectorAll('tr')];
-      const selected = rows.find(row => row.querySelector('input[type=radio]').checked);
-      if (!selected) return alert('대표 상품을 선택해주세요.');
+      const rows = [...document.querySelectorAll("#inputTable tbody tr")];
+      const mainRow = rows.find(row => row.querySelector("input[type='radio']")?.checked);
+      const mainName = mainRow ? mainRow.querySelectorAll("input[type='text']")[0].value.trim() : "대표상품기준";
       const wb = XLSX.utils.book_new();
-      const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 색상 입력', '품절된 사이즈 입력']];
-      rows.forEach((tr, i) => {
-        if (tr.querySelector('input[type=checkbox]').checked) return;
-        const inputs = tr.querySelectorAll('input');
-        const row = [...inputs].slice(1, -1).map(input => input.value);
-        ws_data.push(row);
+      const ws_data = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
+
+      rows.forEach((row, idx) => {
+        const inputs = row.querySelectorAll("input");
+        const name = inputs[1].value.trim();
+        const price = parseInt(inputs[2].value.trim());
+        const colors = inputs[3].value.trim().split(/[,/]/);
+        const sizes = inputs[4].value.trim().split(/[,/]/);
+        const firstName = inputs[5].value.trim();
+        const soldoutColors = inputs[6].value.trim().split(/[,/]/);
+        const soldoutSizes = inputs[7].value.trim().split(/[,/]/);
+        const exclude = inputs[8].checked;
+        const isMain = inputs[0].checked;
+
+        if (!name || exclude) return;
+        const basePrice = parseInt(mainRow?.querySelectorAll("input")[2].value.trim() || price);
+        const baseName = mainRow?.querySelectorAll("input")[1].value.trim();
+
+        colors.forEach(color => {
+          if (!color) return;
+          sizes.forEach(size => {
+            if (!size) return;
+            const fullName = `${idx + 1 < 10 ? '0' + (idx + 1) : idx + 1}) ${document.getElementById('combineNameColor').checked ? name + ' / ' + color : name}`;
+            const optionPrice = price - basePrice;
+            const stock = soldoutColors.includes(color) || soldoutSizes.includes(size) ? 0 : 99999;
+            ws_data.push([fullName, color, size, optionPrice, stock, name, 'Y']);
+          });
+        });
       });
+
       const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      XLSX.utils.book_append_sheet(wb, ws, '옵션');
-      XLSX.writeFile(wb, '대표상품기준.xlsx');
+      XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
+      XLSX.writeFile(wb, `${mainName}.xls`);
     }
 
     function generateAllMainExcelZip() {
