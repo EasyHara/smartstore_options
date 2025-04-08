@@ -61,6 +61,7 @@
                 <th>사이즈</th>
                 <th>대표상품</th>
                 <th>제외</th>
+                <th>품절된 조합</th>  <!-- 추가된 칸 -->
             </tr>
         </thead>
         <tbody>
@@ -75,7 +76,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <script>
-    // 엑셀 양식 다운로드
     document.getElementById('download-template').addEventListener('click', function() {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([
@@ -85,7 +85,6 @@
         XLSX.writeFile(wb, "상품양식.xlsx");
     });
 
-    // 파일 업로드 및 테이블에 표시
     document.getElementById('file-upload').addEventListener('change', function(e) {
         const file = e.target.files[0];
         const reader = new FileReader();
@@ -94,13 +93,11 @@
             const data = event.target.result;
             const workbook = XLSX.read(data, { type: 'binary' });
 
-            // 첫 번째 시트만 읽기
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-            // 테이블에 데이터 표시
             const tbody = document.querySelector('#product-table tbody');
-            tbody.innerHTML = ''; // 테이블 초기화
+            tbody.innerHTML = ''; 
 
             jsonData.forEach((row, index) => {
                 const tr = document.createElement('tr');
@@ -111,6 +108,7 @@
                     <td><input type="text" value="${row['사이즈'] || ''}" /></td>
                     <td><input type="checkbox" ${row['대표상품'] === 'Y' ? 'checked' : ''} /></td>
                     <td><input type="checkbox" ${row['제외'] === 'Y' ? 'checked' : ''} /></td>
+                    <td><input type="text" value="${row['품절된 조합'] || ''}" /> </td> <!-- 추가된 품절된 조합 칸 -->
                 `;
                 tbody.appendChild(tr);
             });
@@ -119,7 +117,6 @@
         reader.readAsBinaryString(file);
     });
 
-    // 행 추가
     document.getElementById('add-row').addEventListener('click', function() {
         const tbody = document.querySelector('#product-table tbody');
         const row = document.createElement('tr');
@@ -130,16 +127,15 @@
             <td><input type="text" /></td>
             <td><input type="checkbox" /></td>
             <td><input type="checkbox" /></td>
+            <td><input type="text" /> </td> <!-- 품절된 조합 칸 추가 -->
         `;
         tbody.appendChild(row);
     });
 
-    // 초기화
     document.getElementById('reset').addEventListener('click', function() {
         document.querySelector('#product-table tbody').innerHTML = '';
     });
 
-    // 엑셀 다운로드
     document.getElementById('download-excel').addEventListener('click', function() {
         const tbody = document.querySelector('#product-table tbody');
         const rows = Array.from(tbody.rows);
@@ -151,10 +147,11 @@
                 "판매가": cols[1].value,
                 "색상": cols[2].value,
                 "사이즈": cols[3].value,
-                "옵션가": 0, // 기본적으로 0으로 설정
-                "재고수량": 99999, // 재고수량은 기본 99999
-                "관리코드": "", // 관리코드 (공백으로 두기)
-                "사용여부": "Y" // 사용여부는 Y로 고정
+                "옵션가": 0, 
+                "재고수량": 99999,
+                "관리코드": "",
+                "사용여부": "Y",
+                "품절된 조합": cols[6].value // 품절된 조합 처리
             };
         });
 
