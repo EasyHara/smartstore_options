@@ -147,28 +147,44 @@
 
         // 대표상품을 찾는 부분
         let fileName = "상품옵션.xlsx"; // 기본 파일명 설정
+        let representProductName = "";
+
+        // 대표상품 체크박스 선택된 항목 찾기
         rows.forEach(row => {
             const cols = row.querySelectorAll('td input');
             const productName = cols[0].value;
             const isRepresentProduct = cols[4].checked;
             if (isRepresentProduct) {
-                fileName = `${productName}.xls`; // 대표상품의 이름을 파일명으로 설정
+                representProductName = productName; // 대표상품명 저장
             }
         });
 
-        const data = rows.map(row => {
+        // 파일명 설정
+        if (representProductName) {
+            fileName = `${representProductName}.xls`; // 대표상품 이름을 엑셀 파일명으로 사용
+        }
+
+        // 상품명, 색상, 사이즈에 대한 데이터 가공
+        const data = [];
+        rows.forEach(row => {
             const cols = row.querySelectorAll('td input');
-            return {
-                "상품명": cols[0].value,
-                "판매가": cols[1].value,
-                "색상": cols[2].value,
-                "사이즈": cols[3].value,
-                "옵션가": 0, 
-                "재고수량": 99999,
-                "관리코드": "",
-                "사용여부": "Y",
-                "품절된 조합": cols[6].value
-            };
+            const productName = cols[0].value;
+            const color = cols[2].value;
+            const size = cols[3].value;
+            const options = size.split(','); // 사이즈는 ','로 구분
+            options.forEach(option => {
+                data.push({
+                    "상품명": productName,
+                    "판매가": cols[1].value,
+                    "색상": color,
+                    "사이즈": option.trim(),
+                    "옵션가": 0,
+                    "재고수량": 99999,
+                    "관리코드": productName,
+                    "사용여부": "Y",
+                    "품절된 조합": cols[6].value
+                });
+            });
         });
 
         const wb = XLSX.utils.book_new();
