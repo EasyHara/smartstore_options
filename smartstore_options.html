@@ -52,37 +52,34 @@
     </table>
   </div>
 
-<script>
-const tableBody = document.querySelector('#inputTable tbody');
+  <script>
+    function downloadTemplate() {
+      const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 조합 입력']];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, '양식');
+      XLSX.writeFile(wb, 'smartstore_template.xlsx');
+    }
 
-function addRow(data = {}) {
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><input type="radio" name="main"></td>
-    <td><input type="text" value="${data['상품명'] || ''}"></td>
-    <td><input type="number" value="${data['판매가'] || ''}"></td>
-    <td><input type="text" value="${data['색상'] || ''}"></td>
-    <td><input type="text" value="${data['사이즈'] || ''}"></td>
-    <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
-    <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
-    <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
-    <td><input type="text" value="${data['품절된 조합 입력'] || ''}"></td>
-    <td><input type="checkbox" ${data['제외'] ? 'checked' : ''}></td>
-  `;
-  tableBody.appendChild(tr);
-}
+    function addRow() {
+      const tableBody = document.querySelector('#inputTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="radio" name="main"></td>
+        <td><input type="text"></td>
+        <td><input type="number"></td>
+        <td><input type="text"></td>
+        <td><input type="text"></td>
+        <td><input type="text"></td>
+        <td><input type="text"></td>
+        <td><input type="checkbox"></td>
+      `;
+      tableBody.appendChild(tr);
+    }
 
-function clearAll() {
-  tableBody.innerHTML = '';
-}
-
-function downloadTemplate() {
-  const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 색상 입력', '품절된 사이즈 입력', '품절된 조합 입력']];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  XLSX.utils.book_append_sheet(wb, ws, '양식');
-  XLSX.writeFile(wb, 'smartstore_template.xlsx');
-}
+    function clearAll() {
+      document.querySelector('#inputTable tbody').innerHTML = '';
+    }
 
 document.getElementById("excelFile").addEventListener("change", function (e) {
   const file = e.target.files[0];
