@@ -122,7 +122,8 @@ function generateExcel() {
     if (!grouped[name]) grouped[name] = groupOrder++;
   });
 
-  dataRows.sort(({ index: a }, { index: b }) => (a === mainRowIndex ? -1 : b === mainRowIndex ? 1 : 0));
+  // 대표 상품 먼저 오도록 정렬
+  dataRows.sort((a, b) => (a.index === mainRowIndex ? -1 : b.index === mainRowIndex ? 1 : 0));
 
   dataRows.forEach(({ row, index }) => {
     const inputs = row.querySelectorAll("input");
