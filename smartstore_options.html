@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -14,11 +15,6 @@
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .top-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
-    .section { margin-top: 30px; }
-    .hidden { display: none; }
-    .saved-template { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ccc; }
-    .saved-template span { flex: 1; }
-    .right-align { text-align: right; }
   </style>
 </head>
 <body>
@@ -53,112 +49,61 @@
   </div>
 
 <script>
-function generateExcel() {
-  const rows = [...document.querySelectorAll("#inputTable tbody tr")];
+function downloadTemplate() {
+  const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 조합 입력']];
   const wb = XLSX.utils.book_new();
-  const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-  const combine = document.getElementById("combineNameColor").checked;
-
-  let order = 1;
-  const nameMap = new Map();
-  const mainIndex = rows.findIndex(row => row.querySelector("input[type='radio']")?.checked);
-  if (mainIndex === -1) return alert("대표 상품을 선택하세요.");
-
-  const mainRow = rows[mainIndex];
-  const mainInputs = mainRow.querySelectorAll("input[type='text'], input[type='number']");
-  const mainName = mainInputs[0].value;
-  const mainPrice = parseInt(mainInputs[1].value) || 0;
-  const main1Name = mainInputs[4].value;
-
-  rows.forEach((row, idx) => {
-    const inputs = row.querySelectorAll("input[type='text'], input[type='number']");
-    const exclude = row.querySelector("input[type='checkbox']")?.checked;
-    const isMain = row.querySelector("input[type='radio']")?.checked;
-
-    if (exclude) return;
-
-    const product = inputs[0].value;
-    const price = parseInt(inputs[1].value) || 0;
-    const colors = inputs[2].value.split(/[,/]/).map(v => v.trim()).filter(Boolean);
-    const sizes = inputs[3].value.split(/[,/]/).map(v => v.trim()).filter(Boolean);
-    const oneName = inputs[4].value;
-    const soldOutCombos = inputs[5].value.split(/\s+/).map(v => v.trim()).filter(Boolean);
-
-    if (!nameMap.has(product)) nameMap.set(product, String(order++).padStart(2, '0'));
-
-    const prefix = nameMap.get(product);
-    const title = isMain ? main1Name : product;
-
-    colors.forEach(color => {
-      sizes.forEach(size => {
-        const isSoldOut = soldOutCombos.includes(`${color}/${size}`);
-        const optionName = `${prefix}) ${combine ? `${title} / ${color}` : title}`;
-        const optionPrice = isMain ? 0 : price - mainPrice;
-        const stock = isSoldOut ? 0 : 99999;
-        wsData.push([optionName, color, size, optionPrice, stock, product, 'Y']);
-      });
-    });
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, "옵션");
-  XLSX.writeFile(wb, `${mainName}.xls`);
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, '양식');
+  XLSX.writeFile(wb, 'smartstore_template.xlsx');
 }
 
-function generateAllMainExcelZip() {
-  const zip = new JSZip();
-  const rows = [...document.querySelectorAll("#inputTable tbody tr")];
-  const combine = document.getElementById("combineNameColor").checked;
-
-  let order = 1;
-  const nameMap = new Map();
-
-  rows.forEach((row, idx) => {
-    const inputs = row.querySelectorAll("input[type='text'], input[type='number']");
-    const exclude = row.querySelector("input[type='checkbox']")?.checked;
-    if (exclude) return;
-
-    const product = inputs[0].value;
-    const price = parseInt(inputs[1].value) || 0;
-    const colors = inputs[2].value.split(/[,/]/).map(v => v.trim()).filter(Boolean);
-    const sizes = inputs[3].value.split(/[,/]/).map(v => v.trim()).filter(Boolean);
-    const oneName = inputs[4].value;
-    const soldOutCombos = inputs[5].value.split(/\s+/).map(v => v.trim()).filter(Boolean);
-
-    if (!nameMap.has(product)) nameMap.set(product, String(order++).padStart(2, '0'));
-    const prefix = nameMap.get(product);
-
-    const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-    colors.forEach(color => {
-      sizes.forEach(size => {
-        const isSoldOut = soldOutCombos.includes(`${color}/${size}`);
-        const optionName = `${prefix}) ${combine ? `${product} / ${color}` : product}`;
-        const stock = isSoldOut ? 0 : 99999;
-        wsData.push([optionName, color, size, 0, stock, product, 'Y']);
-      });
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, "옵션");
-    const buffer = XLSX.write(wb, { bookType: "xls", type: "binary" });
-
-    zip.file(`${product}.xls`, new Blob([s2ab(buffer)]));
-  });
-
-  zip.generateAsync({ type: "blob" }).then(content => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(content);
-    a.download = "옵션_일괄.zip";
-    a.click();
-  });
+function addRow() {
+  const tableBody = document.querySelector('#inputTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="radio" name="main"></td>
+    <td><input type="text"></td>
+    <td><input type="number"></td>
+    <td><input type="text"></td>
+    <td><input type="text"></td>
+    <td><input type="text"></td>
+    <td><input type="text" placeholder="예: 블랙/90 화이트/100"></td>
+    <td><input type="checkbox"></td>
+  `;
+  tableBody.appendChild(tr);
 }
 
-function s2ab(s) {
-  const buf = new ArrayBuffer(s.length);
-  const view = new Uint8Array(buf);
-  for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
-  return buf;
+function clearAll() {
+  document.querySelector('#inputTable tbody').innerHTML = '';
+}
+
+document.getElementById('excelFile').addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    const tableBody = document.querySelector('#inputTable tbody');
+    clearAll();
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="radio" name="main"></td>
+        <td><input type="text" value="${row['상품명'] || ''}"></td>
+        <td><input type="number" value="${row['판매가'] || ''}"></td>
+        <td><input type="text" value="${row['색상'] || ''}"></td>
+        <td><input type="text" value="${row['사이즈'] || ''}"></td>
+        <td><input type="text" value="${row['1번 상품명'] || ''}"></td>
+        <td><input type="text" value="${row['품절된 조합 입력'] || ''}" placeholder="예: 블랙/90 화이트/100"></td>
+        <td><input type="checkbox"></td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  };
+  reader.readAsArrayBuffer(file);
 }
 </script>
 </body>
