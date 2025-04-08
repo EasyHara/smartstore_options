@@ -59,6 +59,7 @@
                 <th>판매가</th>
                 <th>색상</th>
                 <th>사이즈</th>
+                <th>1번 상품명</th> <!-- 1번 상품명 열 추가 -->
                 <th>대표상품</th>
                 <th>제외</th>
                 <th>품절된 조합</th>
@@ -108,6 +109,7 @@
                     <td><input type="number" value="${row['판매가'] || ''}" /></td>
                     <td><input type="text" value="${row['색상'] || ''}" /></td>
                     <td><input type="text" value="${row['사이즈'] || ''}" /></td>
+                    <td><input type="text" value="${row['1번 상품명'] || ''}" /></td> <!-- 1번 상품명 표시 -->
                     <td><input type="checkbox" ${row['대표상품'] === 'Y' ? 'checked' : ''} /></td>
                     <td><input type="checkbox" ${row['제외'] === 'Y' ? 'checked' : ''} /></td>
                     <td><input type="text" value="${row['품절된 조합'] || ''}" /> </td>
@@ -128,6 +130,7 @@
             <td><input type="number" /></td>
             <td><input type="text" /></td>
             <td><input type="text" /></td>
+            <td><input type="text" /></td> <!-- 1번 상품명 입력란 추가 -->
             <td><input type="checkbox" /></td>
             <td><input type="checkbox" /></td>
             <td><input type="text" /> </td> <!-- 품절된 조합 칸 추가 -->
@@ -182,7 +185,8 @@
                     "재고수량": 99999,
                     "관리코드": productName,
                     "사용여부": "Y",
-                    "품절된 조합": cols[6].value
+                    "품절된 조합": cols[7].value,
+                    "1번 상품명": cols[4].value // 1번 상품명 추가
                 });
             });
         });
