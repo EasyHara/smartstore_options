@@ -16,19 +16,22 @@
     #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
     .section { margin-top: 30px; }
     .hidden { display: none; }
+    .saved-template { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #ccc; }
+    .saved-template span { flex: 1; }
     .right-align { text-align: right; }
   </style>
 </head>
 <body>
   <h2>스마트스토어 옵션 자동 생성기</h2>
+
   <div class="top-bar">
     <input type="file" id="excelFile" accept=".xlsx" />
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearAll()">초기화</button>
-    <label><input type="checkbox" id="useNameColor"> 상품명+색상</label>
+    <label><input type="checkbox" id="combineNameColor" /> 상품명+색상</label>
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
+    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
 
   <div id="inputTable-container">
@@ -43,7 +46,7 @@
           <th>1번 상품명</th>
           <th>품절된 색상 입력</th>
           <th>품절된 사이즈 입력</th>
-          <th>품절된 조합 입력<br><small>(색상/사이즈,쉼표로)</small></th>
+          <th>품절된 조합 입력<br>(색상/사이즈)</th>
           <th>제외</th>
         </tr>
       </thead>
