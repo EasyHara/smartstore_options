@@ -106,27 +106,38 @@ function generateExcel() {
   const mainInputs = mainRow.querySelectorAll("input");
   const mainName = mainInputs[1].value;
   const mainPrice = parseInt(mainInputs[2].value) || 0;
+  const mainTitle = mainInputs[5].value;
 
-  const dataRows = rows.filter((_, idx) => !rows[idx].querySelectorAll("input")[8].checked);
-  const sortedRows = [mainRow, ...dataRows.filter((_, idx) => idx !== mainRowIndex)];
+  const dataRows = rows.map((row, index) => ({ row, index })).filter(({ row }) => !row.querySelectorAll("input")[8].checked);
 
+  const grouped = {};
+  let groupOrder = 1;
   const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-  let order = 1;
 
-  sortedRows.forEach(row => {
+  dataRows.forEach(({ row, index }) => {
+    const inputs = row.querySelectorAll("input");
+    const name = inputs[1].value;
+    if (!grouped[name]) grouped[name] = groupOrder++;
+  });
+
+  dataRows.sort(({ index: a }, { index: b }) => (a === mainRowIndex ? -1 : b === mainRowIndex ? 1 : 0));
+
+  dataRows.forEach(({ row, index }) => {
     const inputs = row.querySelectorAll("input");
     const name = inputs[1].value;
     const price = parseInt(inputs[2].value) || 0;
-    const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-    const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-    const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-    const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+    const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(Boolean);
+    const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(Boolean);
+    const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim());
+    const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim());
+    const optionPrice = index === mainRowIndex ? 0 : price - mainPrice;
+    const groupIdx = grouped[name];
+    const labelBase = `${String(groupIdx).padStart(2, '0')}) ${index === mainRowIndex ? mainTitle : name}`;
 
     colors.forEach(color => {
       sizes.forEach(size => {
         const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-        const optionPrice = order === 1 ? 0 : price - mainPrice;
-        const label = `${String(order++).padStart(2, '0')}) ${useColor ? `${name} / ${color}` : name}`;
+        const label = useColor ? `${labelBase} / ${color}` : labelBase;
         wsData.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
       });
     });
@@ -136,55 +147,6 @@ function generateExcel() {
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
   XLSX.writeFile(wb, `${mainName}.xls`);
-}
-
-function generateAllExcelZip() {
-  const rows = [...tableBody.querySelectorAll("tr")];
-  const useColor = document.getElementById("useNameColor").checked;
-  const zip = new JSZip();
-
-  rows.forEach((mainRow, mainIdx) => {
-    const mainInputs = mainRow.querySelectorAll("input");
-    const mainName = mainInputs[1].value;
-    const mainPrice = parseInt(mainInputs[2].value) || 0;
-    const dataRows = rows.filter((_, idx) => !rows[idx].querySelectorAll("input")[8].checked);
-    const sortedRows = [mainRow, ...dataRows.filter((_, idx) => idx !== mainIdx)];
-
-    const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-    let order = 1;
-
-    sortedRows.forEach(row => {
-      const inputs = row.querySelectorAll("input");
-      const name = inputs[1].value;
-      const price = parseInt(inputs[2].value) || 0;
-      const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-      const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-      const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-      const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-
-      colors.forEach(color => {
-        sizes.forEach(size => {
-          const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-          const optionPrice = order === 1 ? 0 : price - mainPrice;
-          const label = `${String(order++).padStart(2, '0')}) ${useColor ? `${name} / ${color}` : name}`;
-          wsData.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
-        });
-      });
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-    const wbout = XLSX.write(wb, { bookType: "xls", type: "binary" });
-    zip.file(`${mainName}.xls`, s2ab(wbout));
-  });
-
-  zip.generateAsync({ type: "blob" }).then(function (content) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(content);
-    a.download = "전체옵션_엑셀파일.zip";
-    a.click();
-  });
 }
 
 function s2ab(s) {
