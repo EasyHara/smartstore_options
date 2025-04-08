@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -15,11 +14,11 @@
     input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
     .top-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <h2>스마트스토어 옵션 자동 생성기</h2>
-
   <div class="top-bar">
     <input type="file" id="excelFile" accept=".xlsx" />
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
@@ -29,7 +28,6 @@
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
     <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
-
   <div id="inputTable-container">
     <table id="inputTable">
       <thead>
@@ -48,63 +46,50 @@
     </table>
   </div>
 
-<script>
-function downloadTemplate() {
-  const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 조합 입력']];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  XLSX.utils.book_append_sheet(wb, ws, '양식');
-  XLSX.writeFile(wb, 'smartstore_template.xlsx');
-}
-
-function addRow() {
-  const tableBody = document.querySelector('#inputTable tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><input type="radio" name="main"></td>
-    <td><input type="text"></td>
-    <td><input type="number"></td>
-    <td><input type="text"></td>
-    <td><input type="text"></td>
-    <td><input type="text"></td>
-    <td><input type="text" placeholder="예: 블랙/90 화이트/100"></td>
-    <td><input type="checkbox"></td>
-  `;
-  tableBody.appendChild(tr);
-}
-
-function clearAll() {
-  document.querySelector('#inputTable tbody').innerHTML = '';
-}
-
-document.getElementById('excelFile').addEventListener('change', function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  <script>
     const tableBody = document.querySelector('#inputTable tbody');
-    clearAll();
-    rows.forEach(row => {
+
+    function downloadTemplate() {
+      const wb = XLSX.utils.book_new();
+      const ws_data = [['상품명','판매가','색상','사이즈','1번 상품명','품절된 조합 입력']];
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, '양식');
+      XLSX.writeFile(wb, 'smartstore_template.xlsx');
+    }
+
+    function addRow(data = {}) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><input type="radio" name="main"></td>
-        <td><input type="text" value="${row['상품명'] || ''}"></td>
-        <td><input type="number" value="${row['판매가'] || ''}"></td>
-        <td><input type="text" value="${row['색상'] || ''}"></td>
-        <td><input type="text" value="${row['사이즈'] || ''}"></td>
-        <td><input type="text" value="${row['1번 상품명'] || ''}"></td>
-        <td><input type="text" value="${row['품절된 조합 입력'] || ''}" placeholder="예: 블랙/90 화이트/100"></td>
-        <td><input type="checkbox"></td>
+        <td><input type="text" value="${data['상품명'] || ''}"></td>
+        <td><input type="number" value="${data['판매가'] || ''}"></td>
+        <td><input type="text" value="${data['색상'] || ''}"></td>
+        <td><input type="text" value="${data['사이즈'] || ''}"></td>
+        <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
+        <td><input type="text" value="${data['품절된 조합 입력'] || ''}" placeholder="예: 블랙/90 화이트/100"></td>
+        <td><input type="checkbox" ${data['제외'] ? 'checked' : ''}></td>
       `;
       tableBody.appendChild(tr);
+    }
+
+    function clearAll() {
+      tableBody.innerHTML = '';
+    }
+
+    document.getElementById('excelFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        clearAll();
+        rows.forEach(row => addRow(row));
+      };
+      reader.readAsArrayBuffer(file);
     });
-  };
-  reader.readAsArrayBuffer(file);
-}
-</script>
+  </script>
 </body>
 </html>
