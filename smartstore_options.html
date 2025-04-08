@@ -34,7 +34,7 @@
     <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
 
-  <div id="inputTable-container">
+    <div id="inputTable-container">
     <table id="inputTable">
       <thead>
         <tr>
@@ -71,7 +71,7 @@
         <td><input type="text"></td>
         <td><input type="text"></td>
         <td><input type="text"></td>
-        <td><input type="text"></td>
+        <td><input type="text" placeholder="예: 블랙/90,화이트/100"></td>
         <td><input type="checkbox"></td>
       `;
       tableBody.appendChild(tr);
@@ -81,20 +81,34 @@
       document.querySelector('#inputTable tbody').innerHTML = '';
     }
 
-document.getElementById("excelFile").addEventListener("change", function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-    clearAll();
-    json.forEach(row => addRow(row));
-  };
-  reader.readAsArrayBuffer(file);
-});
+    document.getElementById('excelFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const tableBody = document.querySelector('#inputTable tbody');
+        clearAll();
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input type="radio" name="main"></td>
+            <td><input type="text" value="${row['상품명'] || ''}"></td>
+            <td><input type="number" value="${row['판매가'] || ''}"></td>
+            <td><input type="text" value="${row['색상'] || ''}"></td>
+            <td><input type="text" value="${row['사이즈'] || ''}"></td>
+            <td><input type="text" value="${row['1번 상품명'] || ''}"></td>
+            <td><input type="text" value="${row['품절된 조합 입력'] || ''}" placeholder="예: 블랙/90,화이트/100"></td>
+            <td><input type="checkbox"></td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
 
 function generateExcel() {
   const rows = [...tableBody.querySelectorAll("tr")];
