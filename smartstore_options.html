@@ -61,7 +61,7 @@
                 <th>사이즈</th>
                 <th>대표상품</th>
                 <th>제외</th>
-                <th>품절된 조합</th>  <!-- 추가된 칸 -->
+                <th>품절된 조합</th>
             </tr>
         </thead>
         <tbody>
@@ -76,6 +76,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <script>
+    // 엑셀 양식 다운로드
     document.getElementById('download-template').addEventListener('click', function() {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet([
@@ -85,6 +86,7 @@
         XLSX.writeFile(wb, "상품양식.xlsx");
     });
 
+    // 파일 업로드 및 테이블에 표시
     document.getElementById('file-upload').addEventListener('change', function(e) {
         const file = e.target.files[0];
         const reader = new FileReader();
@@ -108,7 +110,7 @@
                     <td><input type="text" value="${row['사이즈'] || ''}" /></td>
                     <td><input type="checkbox" ${row['대표상품'] === 'Y' ? 'checked' : ''} /></td>
                     <td><input type="checkbox" ${row['제외'] === 'Y' ? 'checked' : ''} /></td>
-                    <td><input type="text" value="${row['품절된 조합'] || ''}" /> </td> <!-- 추가된 품절된 조합 칸 -->
+                    <td><input type="text" value="${row['품절된 조합'] || ''}" /> </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -117,6 +119,7 @@
         reader.readAsBinaryString(file);
     });
 
+    // 행 추가
     document.getElementById('add-row').addEventListener('click', function() {
         const tbody = document.querySelector('#product-table tbody');
         const row = document.createElement('tr');
@@ -132,14 +135,27 @@
         tbody.appendChild(row);
     });
 
+    // 초기화
     document.getElementById('reset').addEventListener('click', function() {
         document.querySelector('#product-table tbody').innerHTML = '';
     });
 
+    // 엑셀 다운로드
     document.getElementById('download-excel').addEventListener('click', function() {
         const tbody = document.querySelector('#product-table tbody');
         const rows = Array.from(tbody.rows);
-        
+
+        // 대표상품을 찾는 부분
+        let fileName = "상품옵션.xlsx"; // 기본 파일명 설정
+        rows.forEach(row => {
+            const cols = row.querySelectorAll('td input');
+            const productName = cols[0].value;
+            const isRepresentProduct = cols[4].checked;
+            if (isRepresentProduct) {
+                fileName = `${productName}.xls`; // 대표상품의 이름을 파일명으로 설정
+            }
+        });
+
         const data = rows.map(row => {
             const cols = row.querySelectorAll('td input');
             return {
@@ -151,14 +167,14 @@
                 "재고수량": 99999,
                 "관리코드": "",
                 "사용여부": "Y",
-                "품절된 조합": cols[6].value // 품절된 조합 처리
+                "품절된 조합": cols[6].value
             };
         });
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(data);
         XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
-        XLSX.writeFile(wb, "상품옵션.xlsx");
+        XLSX.writeFile(wb, fileName); // 파일명에 대표상품 이름 반영
     });
 </script>
 
