@@ -55,6 +55,7 @@
     <table id="product-table">
         <thead>
             <tr>
+                <th>순번</th>
                 <th>상품명</th>
                 <th>색상</th>
                 <th>사이즈</th>
@@ -101,30 +102,38 @@
             const tbody = document.querySelector('#product-table tbody');
             tbody.innerHTML = ''; 
 
+            let productCounter = 1;
             jsonData.forEach((row, index) => {
                 const productName = row['상품명'] || '';
                 const color = row['색상'] || '';
                 const size = row['사이즈'] || '';
                 const optionName = row['1번 상품명'] || '';
                 const isRepresentProduct = row['대표상품'] === 'Y';
+                const isExcluded = row['제외'] === 'Y';
+                const outOfStock = row['품절된 조합'] || '';
+
+                // 순번 생성
+                const productNumber = isRepresentProduct ? `01) ${optionName}` : `${String(productCounter).padStart(2, '0')}) ${productName}`;
 
                 // 색상과 사이즈 옵션 분리
                 const colorOptions = color.split(/,|\//).map(c => c.trim());
                 const sizeOptions = size.split(/,|\//).map(s => s.trim());
-                
+
                 colorOptions.forEach(colorOpt => {
                     sizeOptions.forEach(sizeOpt => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
+                            <td><input type="text" value="${productNumber}" readonly /></td>
                             <td><input type="text" value="${productName}" readonly /></td>
                             <td><input type="text" value="${colorOpt}" readonly /></td>
                             <td><input type="text" value="${sizeOpt}" readonly /></td>
                             <td><input type="text" value="${optionName}" readonly /></td>
                             <td><input type="checkbox" ${isRepresentProduct ? 'checked' : ''} /></td>
-                            <td><input type="checkbox" /></td>
-                            <td><input type="text" value="${row['품절된 조합'] || ''}" /></td>
+                            <td><input type="checkbox" ${isExcluded ? 'checked' : ''} /></td>
+                            <td><input type="text" value="${outOfStock}" /></td>
                         `;
                         tbody.appendChild(tr);
+                        productCounter++;
                     });
                 });
             });
@@ -138,6 +147,7 @@
         const tbody = document.querySelector('#product-table tbody');
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td><input type="text" /></td>
             <td><input type="text" /></td>
             <td><input type="text" /></td>
             <td><input type="text" /></td>
@@ -164,11 +174,11 @@
         const data = [];
         rows.forEach((row, index) => {
             const cols = row.querySelectorAll('td input');
-            const productName = cols[0].value;
-            const color = cols[1].value;
-            const size = cols[2].value;
-            const optionName = cols[3].value;
-            const isRepresentProduct = cols[4].checked;
+            const productName = cols[1].value;
+            const color = cols[2].value;
+            const size = cols[3].value;
+            const optionName = cols[4].value;
+            const isRepresentProduct = cols[5].checked;
 
             // 대표상품이 선택되었으면 가격 설정
             let price = representProductPrice;
@@ -189,7 +199,7 @@
                 "재고수량": 99999,
                 "관리코드": productName,
                 "사용여부": "Y",
-                "품절된 조합": cols[6].value
+                "품절된 조합": cols[7].value
             });
         });
 
