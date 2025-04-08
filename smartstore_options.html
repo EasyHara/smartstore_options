@@ -21,7 +21,6 @@
 </head>
 <body>
   <h2>스마트스토어 옵션 자동 생성기</h2>
-
   <div class="top-bar">
     <input type="file" id="excelFile" accept=".xlsx" />
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
@@ -29,7 +28,6 @@
     <button onclick="clearAll()">초기화</button>
     <label><input type="checkbox" id="useNameColor"> 상품명+색상</label>
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
 
   <div id="inputTable-container">
@@ -51,141 +49,117 @@
     </table>
   </div>
 
-  <script>
-    const tableBody = document.querySelector('#inputTable tbody');
+<script>
+const tableBody = document.querySelector('#inputTable tbody');
 
-    function addRow(data = {}) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input type="radio" name="main"></td>
-        <td><input type="text" value="${data['상품명'] || ''}"></td>
-        <td><input type="number" value="${data['판매가'] || ''}"></td>
-        <td><input type="text" value="${data['색상'] || ''}"></td>
-        <td><input type="text" value="${data['사이즈'] || ''}"></td>
-        <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
-        <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
-        <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
-        <td><input type="checkbox" ${data['제외'] ? 'checked' : ''}></td>
-      `;
-      tableBody.appendChild(tr);
-    }
+function addRow(data = {}) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="radio" name="main"></td>
+    <td><input type="text" value="${data['상품명'] || ''}"></td>
+    <td><input type="number" value="${data['판매가'] || ''}"></td>
+    <td><input type="text" value="${data['색상'] || ''}"></td>
+    <td><input type="text" value="${data['사이즈'] || ''}"></td>
+    <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
+    <td><input type="text" value="${data['품절된 색상 입력'] || ''}"></td>
+    <td><input type="text" value="${data['품절된 사이즈 입력'] || ''}"></td>
+    <td><input type="checkbox" ${data['제외'] ? 'checked' : ''}></td>
+  `;
+  tableBody.appendChild(tr);
+}
 
-    function clearAll() {
-      tableBody.innerHTML = '';
-    }
+function clearAll() {
+  tableBody.innerHTML = '';
+}
 
-    function downloadTemplate() {
-      const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 색상 입력', '품절된 사이즈 입력']];
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      XLSX.utils.book_append_sheet(wb, ws, '양식');
-      XLSX.writeFile(wb, 'smartstore_template.xlsx');
-    }
+function downloadTemplate() {
+  const ws_data = [['상품명', '판매가', '색상', '사이즈', '1번 상품명', '품절된 색상 입력', '품절된 사이즈 입력']];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, '양식');
+  XLSX.writeFile(wb, 'smartstore_template.xlsx');
+}
 
-    document.getElementById('excelFile').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
-        clearAll();
-        json.forEach(row => addRow(row));
-      };
-      reader.readAsArrayBuffer(file);
+document.getElementById("excelFile").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+    clearAll();
+    json.forEach(row => addRow(row));
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function generateExcel() {
+  const rows = [...tableBody.querySelectorAll("tr")];
+  const wb = XLSX.utils.book_new();
+  const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
+  const useColor = document.getElementById("useNameColor").checked;
+
+  const mainRowIndex = rows.findIndex(row => row.querySelector("input[type='radio']")?.checked);
+  if (mainRowIndex === -1) return alert("대표 상품을 선택하세요.");
+
+  const mainRow = rows[mainRowIndex];
+  const mainInputs = mainRow.querySelectorAll("input");
+  const mainName = mainInputs[5].value || mainInputs[1].value;
+  const mainPrice = parseInt(mainInputs[2].value) || 0;
+
+  let order = 1;
+  const outputRows = [];
+
+  // 먼저 대표상품부터 넣기
+  const mainInputsAll = rows[mainRowIndex].querySelectorAll("input");
+  const name = mainInputsAll[1].value;
+  const price = parseInt(mainInputsAll[2].value) || 0;
+  const colors = mainInputsAll[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+  const sizes = mainInputsAll[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+  const soldOutColors = mainInputsAll[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+  const soldOutSizes = mainInputsAll[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+
+  colors.forEach(color => {
+    sizes.forEach(size => {
+      const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
+      const optionPrice = 0;
+      const label = `01) ${useColor ? mainName + ' / ' + color : mainName}`;
+      outputRows.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
     });
+  });
 
-    function generateExcel() {
-      const rows = [...document.querySelectorAll("#inputTable tbody tr")];
-      const wb = XLSX.utils.book_new();
-      const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-      const useColor = document.getElementById("useNameColor").checked;
-      const mainRowIndex = rows.findIndex(row => row.querySelector("input[type='radio']")?.checked);
-      if (mainRowIndex === -1) return alert("대표 상품을 선택하세요.");
+  // 이후 나머지 상품들 처리
+  rows.forEach((row, idx) => {
+    if (idx === mainRowIndex) return;
+    const inputs = row.querySelectorAll("input");
+    if (inputs[8].checked) return;
 
-      const mainRow = rows[mainRowIndex];
-      const mainInputs = mainRow.querySelectorAll("input");
-      const mainName = mainInputs[1].value;
-      const mainPrice = parseInt(mainInputs[2].value) || 0;
+    const name = inputs[1].value;
+    const price = parseInt(inputs[2].value) || 0;
+    const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+    const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+    const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+    const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
 
-      let order = 1;
-      rows.forEach((row, idx) => {
-        const inputs = row.querySelectorAll("input");
-        if (inputs[8].checked) return;
-
-        const name = inputs[1].value;
-        const price = parseInt(inputs[2].value) || 0;
-        const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-        const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-        const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-        const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-
-        colors.forEach(color => {
-          sizes.forEach(size => {
-            const productText = (idx === mainRowIndex ? '01' : String(order).padStart(2, '0')) + ") " + (useColor ? `${name} / ${color}` : name);
-            const optionPrice = idx === mainRowIndex ? 0 : price - mainPrice;
-            const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-            wsData.push([productText, useColor ? '' : color, size, optionPrice, stock, name, "Y"]);
-          });
-        });
-        if (idx !== mainRowIndex) order++;
+    colors.forEach(color => {
+      sizes.forEach(size => {
+        const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
+        const optionPrice = price - mainPrice;
+        const label = `${String(order + 1).padStart(2, '0')}) ${useColor ? name + ' / ' + color : name}`;
+        outputRows.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
       });
+    });
+    order++;
+  });
 
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-      XLSX.writeFile(wb, `${mainName}.xls`);
-    }
+  outputRows.forEach(row => wsData.push(row));
 
-    function generateAllMainExcelZip() {
-      const zip = new JSZip();
-      const rows = [...tableBody.querySelectorAll("tr")];
-      const useColor = document.getElementById("useNameColor").checked;
-
-      rows.forEach((row, idx) => {
-        const inputs = row.querySelectorAll("input");
-        if (inputs[8].checked) return;
-
-        const name = inputs[1].value;
-        const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-        const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-        const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-        const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-
-        const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-        let order = 1;
-
-        colors.forEach(color => {
-          sizes.forEach(size => {
-            const productText = `${String(order).padStart(2, '0')}) ${useColor ? name + ' / ' + color : name}`;
-            const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-            wsData.push([productText, useColor ? '' : color, size, 0, stock, name, "Y"]);
-          });
-        });
-
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-        const wbout = XLSX.write(wb, { bookType: 'xls', type: 'binary' });
-
-        zip.file(`${name}.xls`, new Blob([s2ab(wbout)], { type: "application/octet-stream" }));
-      });
-
-      zip.generateAsync({ type: "blob" }).then(content => {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(content);
-        a.download = "옵션_엑셀_모음.zip";
-        a.click();
-      });
-    }
-
-    function s2ab(s) {
-      const buf = new ArrayBuffer(s.length);
-      const view = new Uint8Array(buf);
-      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
-      return buf;
-    }
-  </script>
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
+  XLSX.writeFile(wb, `${mainName}.xls`);
+}
+</script>
 </body>
 </html>
