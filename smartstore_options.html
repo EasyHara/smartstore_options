@@ -28,6 +28,7 @@
     <button onclick="clearAll()">초기화</button>
     <label><input type="checkbox" id="useNameColor"> 상품명+색상</label>
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
+    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
 
   <div id="inputTable-container">
@@ -95,8 +96,8 @@ document.getElementById("excelFile").addEventListener("change", function (e) {
   reader.readAsArrayBuffer(file);
 });
 
-function generateExcel() {
-  const rows = [...tableBody.querySelectorAll("tr")];
+function generateExcel(exportRows = null, filename = null) {
+  const rows = exportRows || [...tableBody.querySelectorAll("tr")];
   const wb = XLSX.utils.book_new();
   const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
   const useColor = document.getElementById("useNameColor").checked;
@@ -106,36 +107,17 @@ function generateExcel() {
 
   const mainRow = rows[mainRowIndex];
   const mainInputs = mainRow.querySelectorAll("input");
-  const mainName = mainInputs[5].value || mainInputs[1].value;
+  const mainName = mainInputs[1].value;
+  const displayMainName = mainInputs[5].value || mainName;
   const mainPrice = parseInt(mainInputs[2].value) || 0;
 
-  let order = 1;
-  const outputRows = [];
+  let order = 2;
 
-  // 먼저 대표상품부터 넣기
-  const mainInputsAll = rows[mainRowIndex].querySelectorAll("input");
-  const name = mainInputsAll[1].value;
-  const price = parseInt(mainInputsAll[2].value) || 0;
-  const colors = mainInputsAll[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-  const sizes = mainInputsAll[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-  const soldOutColors = mainInputsAll[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-  const soldOutSizes = mainInputsAll[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
-
-  colors.forEach(color => {
-    sizes.forEach(size => {
-      const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-      const optionPrice = 0;
-      const label = `01) ${useColor ? mainName + ' / ' + color : mainName}`;
-      outputRows.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
-    });
-  });
-
-  // 이후 나머지 상품들 처리
   rows.forEach((row, idx) => {
-    if (idx === mainRowIndex) return;
     const inputs = row.querySelectorAll("input");
     if (inputs[8].checked) return;
 
+    const isMain = idx === mainRowIndex;
     const name = inputs[1].value;
     const price = parseInt(inputs[2].value) || 0;
     const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
@@ -146,19 +128,87 @@ function generateExcel() {
     colors.forEach(color => {
       sizes.forEach(size => {
         const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-        const optionPrice = price - mainPrice;
-        const label = `${String(order + 1).padStart(2, '0')}) ${useColor ? name + ' / ' + color : name}`;
-        outputRows.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
+        const optionPrice = isMain ? -1000 : price - mainPrice;
+        const label = `${isMain ? '01' : String(order++).padStart(2, '0')}) ${useColor ? `${isMain ? name : name} / ${color}` : (isMain ? displayMainName : name)}`;
+        wsData.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
       });
     });
-    order++;
   });
-
-  outputRows.forEach(row => wsData.push(row));
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-  XLSX.writeFile(wb, `${mainName}.xls`);
+  XLSX.writeFile(wb, filename || `${mainName}.xls`);
+}
+
+function generateAllMainExcelZip() {
+  const zip = new JSZip();
+  const rows = [...tableBody.querySelectorAll("tr")];
+  const grouped = [];
+
+  rows.forEach((row, index) => {
+    const inputs = row.querySelectorAll("input");
+    if (inputs[0].checked) grouped.push(index);
+  });
+
+  if (grouped.length === 0) return alert("대표 상품을 선택해주세요.");
+
+  grouped.forEach((mainIndex, i) => {
+    const exportRows = [...rows];
+    exportRows.forEach(r => r.querySelector("input[type='radio']").checked = false);
+    exportRows[mainIndex].querySelector("input[type='radio']").checked = true;
+
+    const wb = XLSX.utils.book_new();
+    const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
+    const useColor = document.getElementById("useNameColor").checked;
+
+    const mainRow = exportRows[mainIndex];
+    const mainInputs = mainRow.querySelectorAll("input");
+    const mainName = mainInputs[1].value;
+    const displayMainName = mainInputs[5].value || mainName;
+    const mainPrice = parseInt(mainInputs[2].value) || 0;
+    let order = 2;
+
+    exportRows.forEach((row, idx) => {
+      const inputs = row.querySelectorAll("input");
+      if (inputs[8].checked) return;
+
+      const isMain = idx === mainIndex;
+      const name = inputs[1].value;
+      const price = parseInt(inputs[2].value) || 0;
+      const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+      const sizes = inputs[4].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+      const soldOutColors = inputs[6].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+      const soldOutSizes = inputs[7].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
+
+      colors.forEach(color => {
+        sizes.forEach(size => {
+          const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
+          const optionPrice = isMain ? -1000 : price - mainPrice;
+          const label = `${isMain ? '01' : String(order++).padStart(2, '0')}) ${useColor ? `${isMain ? name : name} / ${color}` : (isMain ? displayMainName : name)}`;
+          wsData.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
+        });
+      });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
+    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'binary' });
+    zip.file(`${mainName}.xls`, s2ab(wbout));
+  });
+
+  zip.generateAsync({ type: 'blob' }).then(content => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = '대표상품_옵션_일괄.zip';
+    a.click();
+  });
+}
+
+function s2ab(s) {
+  const buf = new ArrayBuffer(s.length);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+  return buf;
 }
 </script>
 </body>
