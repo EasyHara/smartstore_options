@@ -28,7 +28,7 @@
     <button onclick="clearAll()">초기화</button>
     <label><input type="checkbox" id="useNameColor"> 상품명+색상</label>
     <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
+    <button onclick="generateAllExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
   </div>
 
   <div id="inputTable-container">
@@ -96,8 +96,8 @@ document.getElementById("excelFile").addEventListener("change", function (e) {
   reader.readAsArrayBuffer(file);
 });
 
-function generateExcel(exportRows = null, filename = null) {
-  const rows = exportRows || [...tableBody.querySelectorAll("tr")];
+function generateExcel() {
+  const rows = [...tableBody.querySelectorAll("tr")];
   const wb = XLSX.utils.book_new();
   const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
   const useColor = document.getElementById("useNameColor").checked;
@@ -108,10 +108,10 @@ function generateExcel(exportRows = null, filename = null) {
   const mainRow = rows[mainRowIndex];
   const mainInputs = mainRow.querySelectorAll("input");
   const mainName = mainInputs[1].value;
-  const displayMainName = mainInputs[5].value || mainName;
   const mainPrice = parseInt(mainInputs[2].value) || 0;
 
   let order = 2;
+  const outputRows = [];
 
   rows.forEach((row, idx) => {
     const inputs = row.querySelectorAll("input");
@@ -128,51 +128,37 @@ function generateExcel(exportRows = null, filename = null) {
     colors.forEach(color => {
       sizes.forEach(size => {
         const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-        const optionPrice = isMain ? -1000 : price - mainPrice;
-        const label = `${isMain ? '01' : String(order++).padStart(2, '0')}) ${useColor ? `${isMain ? name : name} / ${color}` : (isMain ? displayMainName : name)}`;
-        wsData.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
+        const optionPrice = isMain ? 0 : price - mainPrice;
+        const label = `${isMain ? '01' : String(order++).padStart(2, '0')}) ${useColor ? `${name} / ${color}` : name}`;
+        outputRows.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
       });
     });
   });
 
+  outputRows.forEach(row => wsData.push(row));
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-  XLSX.writeFile(wb, filename || `${mainName}.xls`);
+  XLSX.writeFile(wb, `${mainName}.xls`);
 }
 
-function generateAllMainExcelZip() {
-  const zip = new JSZip();
+function generateAllExcelZip() {
   const rows = [...tableBody.querySelectorAll("tr")];
-  const grouped = [];
+  const useColor = document.getElementById("useNameColor").checked;
+  const zip = new JSZip();
 
-  rows.forEach((row, index) => {
-    const inputs = row.querySelectorAll("input");
-    if (inputs[0].checked) grouped.push(index);
-  });
-
-  if (grouped.length === 0) return alert("대표 상품을 선택해주세요.");
-
-  grouped.forEach((mainIndex, i) => {
-    const exportRows = [...rows];
-    exportRows.forEach(r => r.querySelector("input[type='radio']").checked = false);
-    exportRows[mainIndex].querySelector("input[type='radio']").checked = true;
-
-    const wb = XLSX.utils.book_new();
-    const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
-    const useColor = document.getElementById("useNameColor").checked;
-
-    const mainRow = exportRows[mainIndex];
+  rows.forEach((mainRow, mainIdx) => {
     const mainInputs = mainRow.querySelectorAll("input");
     const mainName = mainInputs[1].value;
-    const displayMainName = mainInputs[5].value || mainName;
     const mainPrice = parseInt(mainInputs[2].value) || 0;
-    let order = 2;
 
-    exportRows.forEach((row, idx) => {
+    let order = 2;
+    const wsData = [["제품선택", "색상", "사이즈", "옵션가", "재고수량", "관리코드", "사용여부"]];
+
+    rows.forEach((row, idx) => {
       const inputs = row.querySelectorAll("input");
       if (inputs[8].checked) return;
 
-      const isMain = idx === mainIndex;
+      const isMain = idx === mainIdx;
       const name = inputs[1].value;
       const price = parseInt(inputs[2].value) || 0;
       const colors = inputs[3].value.split(/[,/]/).map(x => x.trim()).filter(x => x);
@@ -183,23 +169,24 @@ function generateAllMainExcelZip() {
       colors.forEach(color => {
         sizes.forEach(size => {
           const stock = soldOutColors.includes(color) || soldOutSizes.includes(size) ? 0 : 99999;
-          const optionPrice = isMain ? -1000 : price - mainPrice;
-          const label = `${isMain ? '01' : String(order++).padStart(2, '0')}) ${useColor ? `${isMain ? name : name} / ${color}` : (isMain ? displayMainName : name)}`;
+          const optionPrice = isMain ? 0 : price - mainPrice;
+          const label = `${isMain ? '01' : String(order++).padStart(2, '0')}) ${useColor ? `${name} / ${color}` : name}`;
           wsData.push([label, useColor ? '' : color, size, optionPrice, stock, name, 'Y']);
         });
       });
     });
 
+    const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "옵션정보");
-    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'binary' });
+    const wbout = XLSX.write(wb, { bookType: "xls", type: "binary" });
     zip.file(`${mainName}.xls`, s2ab(wbout));
   });
 
-  zip.generateAsync({ type: 'blob' }).then(content => {
-    const a = document.createElement('a');
+  zip.generateAsync({ type: "blob" }).then(function (content) {
+    const a = document.createElement("a");
     a.href = URL.createObjectURL(content);
-    a.download = '대표상품_옵션_일괄.zip';
+    a.download = "전체옵션_엑셀파일.zip";
     a.click();
   });
 }
