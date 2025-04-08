@@ -1,95 +1,169 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>스마트스토어 옵션 자동 생성기</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f0f0f0; }
-    input[type='text'], input[type='number'] { width: 100%; box-sizing: border-box; }
-    .top-bar, .button-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    #inputTable-container { max-height: 500px; overflow-y: auto; margin-bottom: 20px; }
-    .hidden { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트스토어 옵션 자동 생성기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-  <h2>스마트스토어 옵션 자동 생성기</h2>
-  <div class="top-bar">
-    <input type="file" id="excelFile" accept=".xlsx" />
-    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-    <button onclick="addRow()">+ 행 추가</button>
-    <button onclick="clearAll()">초기화</button>
-    <label><input type="checkbox" id="combineNameColor" /> 상품명+색상</label>
-    <button onclick="generateExcel()">현재 대표기준 엑셀 다운로드</button>
-    <button onclick="generateAllMainExcelZip()">일괄 엑셀 다운로드 (ZIP)</button>
-  </div>
-  <div id="inputTable-container">
-    <table id="inputTable">
-      <thead>
-        <tr>
-          <th>대표</th>
-          <th>상품명</th>
-          <th>판매가</th>
-          <th>색상</th>
-          <th>사이즈</th>
-          <th>1번 상품명</th>
-          <th>품절된 조합 입력<br>(색상/사이즈)</th>
-          <th>제외</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+
+<div class="container">
+    <h1>스마트스토어 옵션 자동 생성기</h1>
+
+    <!-- 파일 업로드 -->
+    <div>
+        <label for="file-upload">엑셀 파일 업로드</label>
+        <input type="file" id="file-upload" accept=".xlsx" />
+        <button id="download-template">엑셀 양식 다운로드</button>
+    </div>
+
+    <!-- 상품 추가 버튼 -->
+    <button id="add-row">+ 행 추가</button>
+    <button id="reset">초기화</button>
+
+    <!-- 상품 테이블 -->
+    <table id="product-table">
+        <thead>
+            <tr>
+                <th>상품명</th>
+                <th>판매가</th>
+                <th>색상</th>
+                <th>사이즈</th>
+                <th>대표상품</th>
+                <th>제외</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 동적으로 추가될 상품 목록 -->
+        </tbody>
     </table>
-  </div>
 
-  <script>
-    const tableBody = document.querySelector('#inputTable tbody');
+    <!-- 버튼들 -->
+    <button id="download-excel">엑셀 다운로드</button>
+    <button id="download-zip">일괄 엑셀 다운로드 (ZIP)</button>
+</div>
 
-    function downloadTemplate() {
-      const wb = XLSX.utils.book_new();
-      const ws_data = [['상품명','판매가','색상','사이즈','1번 상품명','품절된 조합 입력']];
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      XLSX.utils.book_append_sheet(wb, ws, '양식');
-      XLSX.writeFile(wb, 'smartstore_template.xlsx');
-    }
-
-    function addRow(data = {}) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input type="radio" name="main"></td>
-        <td><input type="text" value="${data['상품명'] || ''}"></td>
-        <td><input type="number" value="${data['판매가'] || ''}"></td>
-        <td><input type="text" value="${data['색상'] || ''}"></td>
-        <td><input type="text" value="${data['사이즈'] || ''}"></td>
-        <td><input type="text" value="${data['1번 상품명'] || ''}"></td>
-        <td><input type="text" value="${data['품절된 조합 입력'] || ''}" placeholder="예: 블랙/90 화이트/100"></td>
-        <td><input type="checkbox" ${data['제외'] ? 'checked' : ''}></td>
-      `;
-      tableBody.appendChild(tr);
-    }
-
-    function clearAll() {
-      tableBody.innerHTML = '';
-    }
-
-    document.getElementById('excelFile').addEventListener('change', function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-        clearAll();
-        rows.forEach(row => addRow(row));
-      };
-      reader.readAsArrayBuffer(file);
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+<script>
+    // 엑셀 양식 다운로드
+    document.getElementById('download-template').addEventListener('click', function() {
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([
+            ["상품명", "판매가", "색상", "사이즈", "1번 상품명", "품절된 조합"]
+        ]);
+        XLSX.utils.book_append_sheet(wb, ws, "템플릿");
+        XLSX.writeFile(wb, "상품양식.xlsx");
     });
-  </script>
+
+    // 파일 업로드 및 테이블에 표시
+    document.getElementById('file-upload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            const data = event.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+
+            // 첫 번째 시트만 읽기
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+            // 테이블에 데이터 표시
+            const tbody = document.querySelector('#product-table tbody');
+            tbody.innerHTML = ''; // 테이블 초기화
+
+            jsonData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" value="${row['상품명'] || ''}" /></td>
+                    <td><input type="number" value="${row['판매가'] || ''}" /></td>
+                    <td><input type="text" value="${row['색상'] || ''}" /></td>
+                    <td><input type="text" value="${row['사이즈'] || ''}" /></td>
+                    <td><input type="checkbox" ${row['대표상품'] === 'Y' ? 'checked' : ''} /></td>
+                    <td><input type="checkbox" ${row['제외'] === 'Y' ? 'checked' : ''} /></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+
+        reader.readAsBinaryString(file);
+    });
+
+    // 행 추가
+    document.getElementById('add-row').addEventListener('click', function() {
+        const tbody = document.querySelector('#product-table tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" /></td>
+            <td><input type="number" /></td>
+            <td><input type="text" /></td>
+            <td><input type="text" /></td>
+            <td><input type="checkbox" /></td>
+            <td><input type="checkbox" /></td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // 초기화
+    document.getElementById('reset').addEventListener('click', function() {
+        document.querySelector('#product-table tbody').innerHTML = '';
+    });
+
+    // 엑셀 다운로드
+    document.getElementById('download-excel').addEventListener('click', function() {
+        const tbody = document.querySelector('#product-table tbody');
+        const rows = Array.from(tbody.rows);
+        
+        const data = rows.map(row => {
+            const cols = row.querySelectorAll('td input');
+            return {
+                "상품명": cols[0].value,
+                "판매가": cols[1].value,
+                "색상": cols[2].value,
+                "사이즈": cols[3].value,
+                "옵션가": 0, // 기본적으로 0으로 설정
+                "재고수량": 99999, // 재고수량은 기본 99999
+                "관리코드": "", // 관리코드 (공백으로 두기)
+                "사용여부": "Y" // 사용여부는 Y로 고정
+            };
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
+        XLSX.writeFile(wb, "상품옵션.xlsx");
+    });
+</script>
+
 </body>
 </html>
