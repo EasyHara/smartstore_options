@@ -16,7 +16,6 @@
     th { background-color: #f0f0f0; }
     button, input[type="file"], input[type="text"] { margin: 4px; padding: 6px 12px; font-size: 14px; }
     input[type="checkbox"] { margin-right: 4px; }
-    textarea { width: 100%; height: 100px; margin-top: 10px; font-family: monospace; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -39,20 +38,8 @@
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearTable()">초기화</button>
     <br>
-    <input type="text" id="templateTitle" placeholder="양식 제목 입력">
-    <button onclick="saveTemplate()">제목으로 저장</button>
-    <br>
     <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
     <button onclick="downloadRepresentative()">현재 대표기준 엑셀 다운로드</button>
-    <br><br>
-    <table id="templateList">
-      <thead>
-        <tr><th></th><th>제목</th><th>메모</th><th>생성일</th><th>수정일</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button onclick="deleteSelectedTemplate()">선택된 양식 삭제</button>
-    <button onclick="loadSelectedTemplate()">불러오기</button>
   </div>
   <script>
     function addRow(data = {}) {
