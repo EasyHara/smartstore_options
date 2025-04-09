@@ -112,6 +112,7 @@ function downloadRepresentative() {
   const 대표상품명 = 대표.상품명;
   const 대표그룹 = 대표["1번 상품명"];
   const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
+
   let index = 1;
   const data = [];
 
@@ -119,15 +120,17 @@ function downloadRepresentative() {
     const 순번 = (index < 10 ? `0${index}` : index);
     const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
     const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 품절조합 = (item.품절된조합 || '').split(/[\\n,\\/]/).map(s => s.trim());
+    const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
         const 조합 = `${color}-${size}`;
         const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
+
         const 제품선택 = item === 대표
           ? `01) ${대표["1번 상품명"]} / ${color}`
           : `${순번}) ${item.상품명} / ${color}`;
+
         const 옵션가 = item === 대표 ? 0 : item.판매가 - 대표판매가;
 
         data.push({
