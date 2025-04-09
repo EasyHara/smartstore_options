@@ -140,22 +140,29 @@
         const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
         const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
 
-        색상목록.forEach(color => {
-          사이즈목록.forEach(size => {
-            const 품절 = 품절색.includes(color) || 품절사이즈.includes(size);
-            data.push({
-              제품선택: `${optionPrefix}${color}`,
-              색상: color,
-              사이즈: size,
-              옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
-              재고수량: 품절 ? 0 : 99999,
-              관리코드: item.상품명,
-              사용여부: "Y"
-            });
-          });
-        });
-        index++;
-      });
+색상목록.forEach(color => {
+  사이즈목록.forEach(size => {
+    const 품절 =
+      (품절색.length && 품절사이즈.length && 품절색.includes(color) && 품절사이즈.includes(size)) ||
+      (품절색.length && !품절사이즈.length && 품절색.includes(color)) ||
+      (!품절색.length && 품절사이즈.length && 품절사이즈.includes(size));
+
+    if (품절) {
+      console.warn(`품절 처리됨: 색상=${color}, 사이즈=${size}`);
+    }
+
+    data.push({
+      제품선택: `${optionPrefix}${color}`,
+      색상: color,
+      사이즈: size,
+      옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+      재고수량: 품절 ? 0 : 99999,
+      관리코드: item.상품명,
+      사용여부: "Y"
+    });
+  });
+});
+
 
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
