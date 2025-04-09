@@ -109,7 +109,50 @@
       saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스마트스토어_양식.xlsx`);
     }
 
-    // downloadRepresentative 함수는 기존 Canvas에 저장된 내용을 그대로 활용합니다.
+    function downloadRepresentative() {
+      const rows = getDataFromTable();
+      const 대표 = rows.find(r => r.대표) || rows[0];
+      const 대표판매가 = 대표.판매가;
+      const 대표상품명 = 대표.상품명;
+      const 대표그룹 = 대표["1번 상품명"];
+      const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
+      let index = 1;
+      const data = [];
+
+      items.forEach(item => {
+        const 순번 = (index < 10 ? `0${index}` : index);
+        const optionPrefix = `${순번}) ${item.상품명} / `;
+        const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+        const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+        const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
+        const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
+
+        색상목록.forEach(color => {
+          사이즈목록.forEach(size => {
+            const 품절 =
+              (품절색.length && 품절사이즈.length && 품절색.includes(color) && 품절사이즈.includes(size)) ||
+              (품절색.length && !품절사이즈.length && 품절색.includes(color)) ||
+              (!품절색.length && 품절사이즈.length && 품절사이즈.includes(size));
+
+            data.push({
+              제품선택: `${optionPrefix}${color}`,
+              사이즈: size,
+              옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+              재고수량: 품절 ? 0 : 99999,
+              관리코드: item.상품명,
+              사용여부: "Y"
+            });
+          });
+        });
+        index++;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+      saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${대표상품명}.xls`);
+    }
   </script>
 </body>
 </html>
