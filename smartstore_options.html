@@ -1,214 +1,118 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트스토어 옵션 자동 생성기</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        input[type="file"] {
-            margin-bottom: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
-            padding: 8px;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>스마트스토어 옵션 자동 생성기</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    body { font-family: 'Pretendard', sans-serif; padding: 20px; background: #f8f9fa; color: #212529; }
+    h1 { font-size: 24px; }
+    button, input[type="file"] { margin: 5px 0; padding: 8px 12px; font-size: 16px; }
+    textarea { width: 100%; height: 150px; margin-top: 10px; font-family: monospace; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    label { display: flex; align-items: center; margin-top: 10px; }
+    input[type="checkbox"] { margin-right: 8px; }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>📃 스마트스토어 옵션 자동 생성기</h1>
+    <input type="file" id="inputFile" accept=".xls,.xlsx" /><br/>
+    <label><input type="checkbox" id="combineNameColor"> 상품명+색상 조합으로 제품선택 표시</label>
+    <label><input type="checkbox" id="excludeItem"> 제외 상품 제외하고 출력</label>
+    <button onclick="generateFiles()">엑셀 옵션 생성 및 ZIP 다운로드</button>
+    <textarea id="pasteArea" placeholder="엑셀에서 복사한 데이터 붙여넣기 (선택사항)"></textarea>
+  </div>
+  <script>
+    function generateFiles() {
+      const combineNameColor = document.getElementById('combineNameColor').checked;
+      const excludeItem = document.getElementById('excludeItem').checked;
+      const fileInput = document.getElementById('inputFile').files[0];
+      const pastedText = document.getElementById('pasteArea').value.trim();
 
-<div class="container">
-    <h1>스마트스토어 옵션 자동 생성기</h1>
+      const processWorkbook = (workbook) => {
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
 
-    <!-- 파일 업로드 -->
-    <div>
-        <label for="file-upload">엑셀 파일 업로드</label>
-        <input type="file" id="file-upload" accept=".xlsx" />
-        <button id="download-template">엑셀 양식 다운로드</button>
-    </div>
-
-    <!-- 상품 추가 버튼 -->
-    <button id="add-row">+ 행 추가</button>
-    <button id="reset">초기화</button>
-
-    <!-- 상품 테이블 -->
-    <table id="product-table">
-        <thead>
-            <tr>
-                <th>순번</th>
-                <th>상품명</th>
-                <th>색상</th>
-                <th>사이즈</th>
-                <th>1번 상품명</th>
-                <th>대표상품</th>
-                <th>제외</th>
-                <th>품절된 조합</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- 동적으로 추가될 상품 목록 -->
-        </tbody>
-    </table>
-
-    <!-- 버튼들 -->
-    <button id="download-excel">엑셀 다운로드</button>
-    <button id="download-zip">일괄 엑셀 다운로드 (ZIP)</button>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
-<script>
-    // 엑셀 양식 다운로드
-    document.getElementById('download-template').addEventListener('click', function() {
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet([
-            ["상품명", "색상", "사이즈", "1번 상품명", "품절된 조합"]
-        ]);
-        XLSX.utils.book_append_sheet(wb, ws, "템플릿");
-        XLSX.writeFile(wb, "상품양식.xlsx");
-    });
-
-    // 파일 업로드 및 테이블에 표시
-    document.getElementById('file-upload').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = function(event) {
-            const data = event.target.result;
-            const workbook = XLSX.read(data, { type: 'binary' });
-
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(sheet);
-
-            const tbody = document.querySelector('#product-table tbody');
-            tbody.innerHTML = ''; 
-
-            let productCounter = 1;
-            jsonData.forEach((row, index) => {
-                const productName = row['상품명'] || '';
-                const color = row['색상'] || '';
-                const size = row['사이즈'] || '';
-                const optionName = row['1번 상품명'] || '';
-                const isRepresentProduct = row['대표상품'] === 'Y';
-                const isExcluded = row['제외'] === 'Y';
-                const outOfStock = row['품절된 조합'] || '';
-
-                // 순번 생성
-                const productNumber = isRepresentProduct ? `01) ${optionName}` : `${String(productCounter).padStart(2, '0')}) ${productName}`;
-
-                // 색상과 사이즈 옵션 분리
-                const colorOptions = color.split(/,|\//).map(c => c.trim());
-                const sizeOptions = size.split(/,|\//).map(s => s.trim());
-
-                colorOptions.forEach(colorOpt => {
-                    sizeOptions.forEach(sizeOpt => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td><input type="text" value="${productNumber}" readonly /></td>
-                            <td><input type="text" value="${productName}" readonly /></td>
-                            <td><input type="text" value="${colorOpt}" readonly /></td>
-                            <td><input type="text" value="${sizeOpt}" readonly /></td>
-                            <td><input type="text" value="${optionName}" readonly /></td>
-                            <td><input type="checkbox" ${isRepresentProduct ? 'checked' : ''} /></td>
-                            <td><input type="checkbox" ${isExcluded ? 'checked' : ''} /></td>
-                            <td><input type="text" value="${outOfStock}" /></td>
-                        `;
-                        tbody.appendChild(tr);
-                        productCounter++;
-                    });
-                });
-            });
-        };
-
-        reader.readAsBinaryString(file);
-    });
-
-    // 행 추가
-    document.getElementById('add-row').addEventListener('click', function() {
-        const tbody = document.querySelector('#product-table tbody');
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><input type="text" /></td>
-            <td><input type="text" /></td>
-            <td><input type="text" /></td>
-            <td><input type="text" /></td>
-            <td><input type="text" /></td>
-            <td><input type="checkbox" /></td>
-            <td><input type="checkbox" /></td>
-            <td><input type="text" /> </td> <!-- 품절된 조합 칸 추가 -->
-        `;
-        tbody.appendChild(row);
-    });
-
-    // 초기화
-    document.getElementById('reset').addEventListener('click', function() {
-        document.querySelector('#product-table tbody').innerHTML = '';
-    });
-
-    // 엑셀 다운로드
-    document.getElementById('download-excel').addEventListener('click', function() {
-        const tbody = document.querySelector('#product-table tbody');
-        const rows = Array.from(tbody.rows);
-
-        let representProductPrice = 0;
-
-        const data = [];
-        rows.forEach((row, index) => {
-            const cols = row.querySelectorAll('td input');
-            const productName = cols[1].value;
-            const color = cols[2].value;
-            const size = cols[3].value;
-            const optionName = cols[4].value;
-            const isRepresentProduct = cols[5].checked;
-
-            // 대표상품이 선택되었으면 가격 설정
-            let price = representProductPrice;
-            if (isRepresentProduct) {
-                price = 0;
-            } else if (!representProductPrice) {
-                // 대표상품 가격을 찾아서 차감
-                representProductPrice = 10000; // 예시로, 실제로는 엑셀 파일에서 가져온 값으로 설정
-                price = representProductPrice - 1000; // 예시, 대표상품의 가격에서 차감
-            }
-
-            data.push({
-                "상품명": productName,
-                "색상": color,
-                "사이즈": size,
-                "1번 상품명": optionName,
-                "옵션가": price,
-                "재고수량": 99999,
-                "관리코드": productName,
-                "사용여부": "Y",
-                "품절된 조합": cols[7].value
-            });
+        const grouped = {};
+        json.forEach(row => {
+          if (!grouped[row["1번 상품명"]]) grouped[row["1번 상품명"]] = [];
+          grouped[row["1번 상품명"]].push(row);
         });
 
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
-        XLSX.writeFile(wb, "상품옵션.xls");
-    });
-</script>
+        const zip = new JSZip();
 
+        Object.entries(grouped).forEach(([groupKey, items], i) => {
+          const repItem = items.find(item => item["1번 상품명"] == groupKey);
+          const repPrice = parseInt(repItem["판매가"]);
+          const repName = repItem["상품명"];
+
+          let data = [];
+          let order = 1;
+
+          items.forEach((item, idx) => {
+            const colorList = String(item["색상"] || '').replace(/\//g, ',').split(',');
+            const sizeList = String(item["사이즈"] || '').replace(/\//g, ',').split(',');
+            const isRepresentative = (item["1번 상품명"] == groupKey);
+            const exclude = (excludeItem && item["제외"] == 'Y');
+            if (exclude) return;
+
+            const prefix = (order < 10 ? `0${order}` : order);
+            const optionName = `${prefix}) ${combineNameColor ? `${item["상품명"]} / ` : ''}`;
+
+            colorList.forEach(color => {
+              sizeList.forEach(size => {
+                let 옵션가 = isRepresentative ? 0 : (parseInt(item["판매가"]) - repPrice);
+                let 품절 = (String(item["품절된 조합"] || '').includes(`${color}/${size}`));
+                data.push({
+                  제품선택: `${optionName}${color}`,
+                  색상: color,
+                  사이즈: size,
+                  옵션가: 옵션가,
+                  재고수량: 품절 ? 0 : 99999,
+                  관리코드: item["상품명"],
+                  사용여부: 'Y'
+                });
+              });
+            });
+            order++;
+          });
+
+          const ws = XLSX.utils.json_to_sheet(data);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+          const wbout = XLSX.write(wb, {bookType:'xls', type:'array'});
+          zip.file(`${repName}.xls`, wbout);
+        });
+
+        zip.generateAsync({type:"blob"}).then(content => {
+          saveAs(content, "옵션_자동생성.zip");
+        });
+      };
+
+      if (fileInput) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          processWorkbook(workbook);
+        };
+        reader.readAsArrayBuffer(fileInput);
+      } else if (pastedText) {
+        const rows = pastedText.split("\n").map(r => r.split("\t"));
+        const headers = rows[0];
+        const body = rows.slice(1);
+        const json = body.map(row => Object.fromEntries(row.map((cell, i) => [headers[i], cell])));
+        const ws = XLSX.utils.json_to_sheet(json);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
+        processWorkbook(wb);
+      } else {
+        alert("엑셀 파일을 선택하거나 데이터를 붙여넣어 주세요.");
+      }
+    }
+  </script>
 </body>
 </html>
