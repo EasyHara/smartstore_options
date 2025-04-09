@@ -24,13 +24,11 @@
     <input type="file" id="inputFile" accept=".xls,.xlsx">
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
     <br>
-    <label><input type="checkbox" id="combineNameColor"> 상품명+색상</label>
-    <br>
     <table id="inputTable">
       <thead>
         <tr>
-          <th>대표</th><th>상품명</th><th>판매가</th><th>색상(콤마 또는 /)</th><th>사이즈(콤마 또는 /)</th>
-          <th>1번 상품명</th><th>품절된 색상 입력</th><th>품절된 사이즈 입력</th><th>제외</th>
+          <th>대표</th><th>상품명</th><th>판매가</th><th>색상</th><th>사이즈</th>
+          <th>1번 상품명</th><th>품절된 조합<br>(블랙,90 또는 블랙-90)</th><th>제외</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -41,6 +39,7 @@
     <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
     <button onclick="downloadRepresentative()">현재 대표상품 엑셀 다운로드</button>
   </div>
+
   <script>
     document.getElementById("inputFile").addEventListener("change", function(e) {
       const file = e.target.files[0];
@@ -54,8 +53,7 @@
         clearTable();
         json.forEach(row => addRow({
           상품명: row["상품명"], 판매가: row["판매가"], 색상: row["색상"], 사이즈: row["사이즈"],
-          ["1번 상품명"]: row["1번 상품명"], 품절된색상: row["품절된 색상 입력"] || row["품절된 조합"] || '',
-          품절된사이즈: row["품절된 사이즈 입력"] || '', 제외: row["제외"] === 'Y' || row["제외"] === true
+          ["1번 상품명"]: row["1번 상품명"], 품절된조합: row["품절된 조합"] || '', 제외: row["제외"] === 'Y' || row["제외"] === true
         }));
       };
       reader.readAsArrayBuffer(file);
@@ -71,8 +69,7 @@
         <td><input value="${data.색상 || ''}"></td>
         <td><input value="${data.사이즈 || ''}"></td>
         <td><input value="${data["1번 상품명"] || ''}"></td>
-        <td><input value="${data.품절된색상 || ''}"></td>
-        <td><input value="${data.품절된사이즈 || ''}"></td>
+        <td><input value="${data.품절된조합 || ''}"></td>
         <td><input type="checkbox" ${data.제외 ? 'checked' : ''}></td>
       `;
       tbody.appendChild(row);
@@ -93,15 +90,14 @@
           색상: cells[3].value,
           사이즈: cells[4].value,
           ["1번 상품명"]: cells[5].value,
-          품절된색상: cells[6].value,
-          품절된사이즈: cells[7].value,
-          제외: cells[8].checked
+          품절된조합: cells[6].value,
+          제외: cells[7].checked
         };
       });
     }
 
     function downloadTemplate() {
-      const headers = ["상품명","판매가","색상","사이즈","1번 상품명","품절된 색상 입력","품절된 사이즈 입력","제외"];
+      const headers = ["상품명","판매가","색상","사이즈","1번 상품명","품절된 조합","제외"];
       const ws = XLSX.utils.aoa_to_sheet([headers]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
@@ -124,16 +120,12 @@
         const optionPrefix = `${순번}) ${item.상품명} / `;
         const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
         const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-        const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
-        const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
+        const 품절조합 = (item.품절된조합 || '').split(/[\\n,\\/]/).map(s => s.trim());
 
         색상목록.forEach(color => {
           사이즈목록.forEach(size => {
-            const 품절 =
-              (품절색.length && 품절사이즈.length && 품절색.includes(color) && 품절사이즈.includes(size)) ||
-              (품절색.length && !품절사이즈.length && 품절색.includes(color)) ||
-              (!품절색.length && 품절사이즈.length && 품절사이즈.includes(size));
-
+            const 조합 = `${color}-${size}`;
+            const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
             data.push({
               제품선택: `${optionPrefix}${color}`,
               사이즈: size,
@@ -152,6 +144,61 @@
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
       saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${대표상품명}.xls`);
+    }
+
+    function generateZip() {
+      const rows = getDataFromTable();
+      const zip = new JSZip();
+      const grouped = {};
+
+      rows.forEach(row => {
+        if (row.제외) return;
+        const key = row["1번 상품명"];
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(row);
+      });
+
+      Object.entries(grouped).forEach(([groupKey, items]) => {
+        const 대표 = items.find(i => i.대표) || items[0];
+        const 대표판매가 = 대표.판매가;
+        const 대표상품명 = 대표.상품명;
+        let index = 1;
+        const data = [];
+
+        items.forEach(item => {
+          const 순번 = (index < 10 ? `0${index}` : index);
+          const optionPrefix = `${순번}) ${item.상품명} / `;
+          const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+          const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+          const 품절조합 = (item.품절된조합 || '').split(/[\\n,\\/]/).map(s => s.trim());
+
+          색상목록.forEach(color => {
+            사이즈목록.forEach(size => {
+              const 조합 = `${color}-${size}`;
+              const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
+              data.push({
+                제품선택: `${optionPrefix}${color}`,
+                사이즈: size,
+                옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+                재고수량: 품절 ? 0 : 99999,
+                관리코드: item.상품명,
+                사용여부: "Y"
+              });
+            });
+          });
+          index++;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+        const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+        zip.file(`${대표상품명}.xls`, wbout);
+      });
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        saveAs(content, "옵션_일괄다운로드.zip");
+      });
     }
   </script>
 </body>
