@@ -102,6 +102,60 @@
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
       saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${대표상품명}.xls`);
     }
+    <script>
+    document.getElementById("inputFile").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(evt) {
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets["상품옵션"] || workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) {
+          alert("상품옵션 시트를 찾을 수 없습니다.");
+          return;
+        }
+        const json = XLSX.utils.sheet_to_json(sheet);
+        clearTable();
+        json.forEach(row => {
+          addRow({
+            상품명: row["상품명"],
+            판매가: row["판매가"],
+            색상: row["색상"],
+            사이즈: row["사이즈"],
+            ["1번 상품명"]: row["1번 상품명"],
+            품절된색상: row["품절된 색상 입력"] || row["품절된 조합"] || '',
+            품절된사이즈: row["품절된 사이즈 입력"] || '',
+            제외: row["제외"] === 'Y' || row["제외"] === true
+          });
+        });
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+    function addRow(data = {}) {
+      const tbody = document.querySelector("#inputTable tbody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><input type="radio" name="대표"></td>
+        <td><input value="${data.상품명 || ''}"></td>
+        <td><input value="${data.판매가 || ''}" type="number"></td>
+        <td><input value="${data.색상 || ''}"></td>
+        <td><input value="${data.사이즈 || ''}"></td>
+        <td><input value="${data["1번 상품명"] || ''}"></td>
+        <td><input value="${data.품절된색상 || ''}"></td>
+        <td><input value="${data.품절된사이즈 || ''}"></td>
+        <td><input type="checkbox" ${data.제외 ? 'checked' : ''}></td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    function clearTable() {
+      document.querySelector("#inputTable tbody").innerHTML = '';
+    }
+</script>
+
   </script>
 </body>
 </html>
