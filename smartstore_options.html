@@ -238,29 +238,6 @@ function generateZip() {
   });
 }
 
-window.addEventListener('paste', e => {
-  const clipboard = e.clipboardData.getData('text/plain');
-  const rows = clipboard.trim().split(/\r?\n/);
-  rows.forEach(line => {
-    const cells = line.split(/\t|,/);
-    if (cells.length >= 8) {
-      const tbody = document.querySelector("#inputTable tbody");
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><input type="radio" name="대표"></td>
-        <td><input type="text" value="${cells[0] || ''}"></td>
-        <td><input type="text" value="${cells[1] || ''}"></td>
-        <td><input type="text" value="${cells[2] || ''}"></td>
-        <td><input type="text" value="${cells[3] || ''}"></td>
-        <td><input type="text" value="${cells[4] || ''}"></td>
-        <td><input type="text" value="${cells[5] || ''}"></td>
-        <td><input type="text" value="${cells[6] || ''}"></td>
-        <td><input type="checkbox" ${cells[7].toLowerCase() === 'true' ? 'checked' : ''}></td>
-      `;
-      tbody.appendChild(tr);
-    }
-  });
-});
   </script>
 </body>
 </html>
