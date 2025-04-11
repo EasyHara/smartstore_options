@@ -176,7 +176,12 @@ function generateZip() {
   rows.forEach((대표) => {
     const 대표판매가 = 대표.판매가;
     const 대표상품명 = 대표.상품명;
-    let index = 1;
+
+    // 브랜드명 추출 (맨 앞 단어, 공백 기준)
+    const 브랜드 = 대표상품명.split(' ')[0];
+    const 대표1번이름 = 대표["1번 상품명"];
+    const full1번이름 = `${브랜드} ${대표1번이름}`;
+
     const data = [];
 
     // 대표 먼저 추가 (01번)
@@ -190,7 +195,7 @@ function generateZip() {
         const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
 
         data.push({
-          제품선택: `01) ${대표["1번 상품명"]} / ${color}`,
+          제품선택: `01) ${full1번이름} / ${color}`,
           사이즈: size,
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
@@ -200,9 +205,9 @@ function generateZip() {
       });
     });
 
-    // 나머지 동일 1번 상품명 그룹이 아닌 행들
+    let index = 2;
     rows.filter(r => r !== 대표).forEach(item => {
-      const 순번 = (index + 1 < 10 ? `0${index + 1}` : index + 1);
+      const 순번 = (index < 10 ? `0${index}` : index);
       const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
       const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
       const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
