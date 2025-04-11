@@ -115,23 +115,40 @@ function downloadRepresentative() {
   const full1번이름 = `${브랜드} ${대표1번이름}`;
   const data = [];
 
-  let index = 1;
-  rows.forEach((item, idx) => {
+  const 색상목록대표 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  const 사이즈목록대표 = (대표.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  const 품절조합대표 = (대표.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
+
+  색상목록대표.forEach(color => {
+    사이즈목록대표.forEach(size => {
+      const 조합 = `${color}-${size}`;
+      const 품절 = 품절조합대표.includes(color) || 품절조합대표.includes(size) || 품절조합대표.includes(조합);
+      data.push({
+        제품선택: `01) ${full1번이름} / ${color}`,
+        사이즈: size,
+        옵션가: 0,
+        재고수량: 품절 ? 0 : 99999,
+        관리코드: 대표.상품명,
+        사용여부: "Y"
+      });
+    });
+  });
+
+  let index = 2;
+  rows.filter(r => r !== 대표).forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
-    const is대표 = item === 대표;
     const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
     const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
     const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
-    const 상품명표시 = is대표 ? full1번이름 : item.상품명;
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
         const 조합 = `${color}-${size}`;
         const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
-        const 옵션가 = is대표 ? 0 : item.판매가 - 대표판매가;
+        const 옵션가 = item.판매가 - 대표판매가;
 
         data.push({
-          제품선택: `${순번}) ${상품명표시} / ${color}`,
+          제품선택: `${순번}) ${item.상품명} / ${color}`,
           사이즈: size,
           옵션가,
           재고수량: 품절 ? 0 : 99999,
