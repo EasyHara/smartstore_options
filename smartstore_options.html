@@ -40,7 +40,7 @@
     <button onclick="downloadRepresentative()">대표상품 엑셀 다운로드</button>
     <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
     <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
-
+    <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
   </div>
 
   <script>
@@ -313,6 +313,48 @@ function downloadSingleProductExcel() {
   XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
+}
+    function downloadSingleProductExcelAll() {
+  const rows = getDataFromTable().filter(r => !r.제외);
+  const zip = new JSZip();
+
+  rows.forEach(item => {
+    const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+    const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+    const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
+
+    let data = [];
+    let done = false;
+    색상목록.forEach(color => {
+      if (done) return;
+      사이즈목록.forEach(size => {
+        if (done) return;
+        const 조합 = `${color}-${size}`;
+        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
+        data.push({
+          제품선택: `01) ${item.상품명} / ${color}`,
+          사이즈: size,
+          옵션가: 0,
+          재고수량: 품절 ? 0 : 99999,
+          관리코드: item.상품명,
+          사용여부: "Y"
+        });
+        done = true;
+      });
+    });
+
+    if (data.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
+      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+      zip.file(`단품등록_${item.상품명}.xls`, wbout);
+    }
+  });
+
+  zip.generateAsync({ type: "blob" }).then(content => {
+    saveAs(content, "단품등록_전체다운로드.zip");
+  });
 }
   </script>
 </body>
