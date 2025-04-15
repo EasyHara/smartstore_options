@@ -291,7 +291,7 @@ function downloadSingleProductExcel() {
   색상목록.forEach(color => {
     const 품절 = 품절조합.includes(color);
     data.push({
-      제품선택: `01) ${상품명} / ${color}`,
+      제품선택: `${상품명} / ${color}`,
       사이즈: 대표.사이즈,
       옵션가: 0,
       재고수량: 품절 ? 0 : 99999,
@@ -320,7 +320,7 @@ function downloadSingleProductExcelAll() {
     색상목록.forEach(color => {
       const 품절 = 품절조합.includes(color);
       data.push({
-        제품선택: `01) ${상품명} / ${color}`,
+        제품선택: `${상품명} / ${color}`,
         사이즈: item.사이즈,
         옵션가: 0,
         재고수량: 품절 ? 0 : 99999,
