@@ -36,8 +36,8 @@
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearTable()">초기화</button>
     <br>
-    <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
     <button onclick="downloadRepresentative()">대표상품 엑셀 다운로드</button>
+    <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
     <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
     <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
     <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
@@ -286,8 +286,7 @@ function downloadSingleProductExcel() {
   const data = [];
   const 색상목록 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
   const 사이즈목록 = (대표.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-  const 품절조합 = (대표.품절된조합 || '').split(/[
-,\/]/).map(s => s.trim());
+  const 품절조합 = (대표.품절된조합 || '').split(/[,\/]/).map(s => s.trim());
 
   let done = false;
   색상목록.forEach(color => {
