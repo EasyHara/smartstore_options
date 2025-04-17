@@ -278,6 +278,7 @@ function downloadAddProductExcel() {
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_엑셀.xls`);
 }
+// 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
   const 대표 = rows.find(r => r.대표) || rows[0];
@@ -285,18 +286,21 @@ function downloadSingleProductExcel() {
 
   const data = [];
   const 색상목록 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  const 사이즈목록 = (대표.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
   const 품절조합 = (대표.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
 
   색상목록.forEach(color => {
-    const 품절 = 품절조합.includes(color);
-    data.push({
-      제품선택: `${상품명} / ${color}`,
-      사이즈: 대표.사이즈,
-      옵션가: 0,
-      재고수량: 품절 ? 0 : 99999,
-      관리코드: 대표.상품명,
-      사용여부: "Y"
+    사이즈목록.forEach(size => {
+      const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+      data.push({
+        제품선택: `${상품명} / ${color}`,
+        사이즈: size,
+        옵션가: 0,
+        재고수량: 품절 ? 0 : 99999,
+        관리코드: 대표.상품명,
+        사용여부: "Y"
+      });
     });
   });
 
@@ -306,26 +310,29 @@ function downloadSingleProductExcel() {
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
 }
-    // 단품등록용 전체 엑셀 ZIP 다운로드 - 모든 상품 각각 전체 색상 출력
+// 단품등록용 전체 엑셀 ZIP 다운로드 - 모든 상품 각각 전체 색상/사이즈 조합 출력
 function downloadSingleProductExcelAll() {
   const rows = getDataFromTable().filter(r => !r.제외);
   const zip = new JSZip();
 
   rows.forEach(item => {
     const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+    const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
     const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
     const 상품명 = item["1번 상품명"] || item.상품명;
 
     let data = [];
     색상목록.forEach(color => {
-      const 품절 = 품절조합.includes(color);
-      data.push({
-        제품선택: `${상품명} / ${color}`,
-        사이즈: item.사이즈,
-        옵션가: 0,
-        재고수량: 품절 ? 0 : 99999,
-        관리코드: item.상품명,
-        사용여부: "Y"
+      사이즈목록.forEach(size => {
+        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+        data.push({
+          제품선택: `${상품명} / ${color}`,
+          사이즈: size,
+          옵션가: 0,
+          재고수량: 품절 ? 0 : 99999,
+          관리코드: item.상품명,
+          사용여부: "Y"
+        });
       });
     });
 
