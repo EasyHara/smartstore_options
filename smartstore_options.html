@@ -107,53 +107,35 @@
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스마트스토어_양식.xlsx`);
     }
-
+    
+// 대표상품 기준 엑셀 다운로드 확장 사이즈 적용
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
+  const combine = document.getElementById("combineNameColor").checked;
   const 대표 = rows.find(r => r.대표) || rows[0];
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
-  const 브랜드 = 대표상품명.split(' ')[0];
-  const 대표1번이름 = 대표["1번 상품명"];
-  const full1번이름 = `${브랜드} ${대표1번이름}`;
+  const 대표그룹 = 대표["1번 상품명"];
+  const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
+  let index = 1;
   const data = [];
 
-  const 색상목록대표 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-  const 사이즈목록대표 = (대표.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-  const 품절조합대표 = (대표.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
-
-  색상목록대표.forEach(color => {
-    사이즈목록대표.forEach(size => {
-      const 조합 = `${color}-${size}`;
-      const 품절 = 품절조합대표.includes(color) || 품절조합대표.includes(size) || 품절조합대표.includes(조합);
-      data.push({
-        제품선택: `01) ${full1번이름} / ${color}`,
-        사이즈: size,
-        옵션가: 0,
-        재고수량: 품절 ? 0 : 99999,
-        관리코드: 대표.상품명,
-        사용여부: "Y"
-      });
-    });
-  });
-
-  let index = 2;
-  rows.filter(r => r !== 대표).forEach(item => {
+  items.forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
+    const optionPrefix = `${순번}) ${combine ? item.상품명 + ' / ' : ''}`;
     const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
+    const 사이즈목록 = expandSizes(item.사이즈 || '');
+    const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
+    const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
-        const 조합 = `${color}-${size}`;
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
-        const 옵션가 = item.판매가 - 대표판매가;
-
+        const 품절 = 품절색.includes(color) || 품절사이즈.includes(size);
         data.push({
-          제품선택: `${순번}) ${item.상품명} / ${color}`,
+          제품선택: `${optionPrefix}${color}`,
+          색상: color,
           사이즈: size,
-          옵션가,
+          옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
           사용여부: "Y"
@@ -170,59 +152,39 @@ function downloadRepresentative() {
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${대표상품명}.xls`);
 }
 
-
+// 일괄 엑셀 다운로드 ZIP - 사이즈 확장 적용
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
   const zip = new JSZip();
 
-  rows.forEach((대표) => {
-    const 대표판매가 = 대표.판매가;
-    const 대표상품명 = 대표.상품명;
+  rows.forEach(item => {
+    const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+    const 사이즈목록 = expandSizes(item.사이즈 || '');
+    const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
+    const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
+    const 대표상품명 = item.상품명;
+    const 대표그룹 = item["1번 상품명"];
+    const 대표판매가 = item.판매가;
 
-    const 브랜드 = 대표상품명.split(' ')[0];
-    const 대표1번이름 = 대표["1번 상품명"];
-    const full1번이름 = `${브랜드} ${대표1번이름}`;
+    let data = [];
+    let index = 1;
+    const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
 
-    const data = [];
-
-    const 색상목록 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = (대표.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 품절조합 = (대표.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
-
-    색상목록.forEach(color => {
-      사이즈목록.forEach(size => {
-        const 조합 = `${color}-${size}`;
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
-        data.push({
-          제품선택: `01) ${full1번이름} / ${color}`,
-          사이즈: size,
-          옵션가: 0,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
-          사용여부: "Y"
-        });
-      });
-    });
-
-    let index = 2;
-    rows.filter(r => r !== 대표).forEach(item => {
+    items.forEach(it => {
       const 순번 = (index < 10 ? `0${index}` : index);
-      const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-      const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-      const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
-
-      색상목록.forEach(color => {
-        사이즈목록.forEach(size => {
-          const 조합 = `${color}-${size}`;
-          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
-          const 옵션가 = item.판매가 - 대표판매가;
-
+      const prefix = `${순번}) `;
+      const 색상목록2 = (it.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+      const 사이즈목록2 = expandSizes(it.사이즈 || '');
+      색상목록2.forEach(color => {
+        사이즈목록2.forEach(size => {
+          const 품절 = 품절색.includes(color) || 품절사이즈.includes(size);
           data.push({
-            제품선택: `${순번}) ${item.상품명} / ${color}`,
+            제품선택: `${prefix}${color}`,
+            색상: color,
             사이즈: size,
-            옵션가,
+            옵션가: it === item ? 0 : it.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
-            관리코드: item.상품명,
+            관리코드: it.상품명,
             사용여부: "Y"
           });
         });
@@ -230,40 +192,42 @@ function generateZip() {
       index++;
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-    zip.file(`${대표상품명}.xls`, wbout);
+    if (data.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+      zip.file(`${대표상품명}.xls`, wbout);
+    }
   });
 
   zip.generateAsync({ type: "blob" }).then(content => {
     saveAs(content, "옵션_일괄다운로드.zip");
   });
 }
-    
-function downloadAddProductExcel() {
-    const rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) return;
 
-  const data = [];
+// 추가상품 엑셀 다운로드 - 사이즈 확장 포함
+function downloadAddOptionExcel() {
+  const rows = getDataFromTable().filter(r => !r.제외);
+  const 대표 = rows.find(r => r.대표) || rows[0];
+  const 대표그룹 = 대표["1번 상품명"];
+
+  const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
+
   let index = 1;
-  rows.forEach(item => {
-    const 순번 = index < 10 ? `0${index}` : index;
+  let data = [];
+  items.forEach(item => {
+    const 순번 = (index < 10 ? `0${index}` : index);
     const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
+    const 사이즈목록 = expandSizes(item.사이즈 || '');
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
-        const 조합 = `${color}-${size}`;
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(조합);
-
         data.push({
           추가상품명: '제품선택',
           추가상품값: `${순번}) ${item.상품명} / ${color}`,
           추가상품가: item.판매가,
-          재고수량: 품절 ? 0 : 99999,
+          재고수량: 99999,
           사용여부: 'Y',
           관리코드: item.상품명
         });
@@ -274,10 +238,11 @@ function downloadAddProductExcel() {
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "추가상품옵션");
+  XLSX.utils.book_append_sheet(wb, ws, "추가상품");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_엑셀.xls`);
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_${대표.상품명}.xls`);
 }
+    
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -286,7 +251,7 @@ function downloadSingleProductExcel() {
 
   const data = [];
   const 색상목록 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-  const 사이즈목록 = (대표.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  const 사이즈목록 = expandSizes(대표.사이즈 || '');
   const 품절조합 = (대표.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
 
@@ -317,7 +282,7 @@ function downloadSingleProductExcelAll() {
 
   rows.forEach(item => {
     const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = (item.사이즈 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
+    const 사이즈목록 = expandSizes(item.사이즈 || '');
     const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
     const 상품명 = item["1번 상품명"] || item.상품명;
 
@@ -348,6 +313,26 @@ function downloadSingleProductExcelAll() {
   zip.generateAsync({ type: "blob" }).then(content => {
     saveAs(content, "단품등록_전체다운로드.zip");
   });
+}
+    // 사이즈 자동 확장 함수 (예: "230~290" → [230, 235, ..., 290])
+function expandSizes(input) {
+  const result = [];
+  const parts = input.split(/[,/]/).map(p => p.trim());
+
+  parts.forEach(part => {
+    const match = part.match(/^(\d{2,3})~(\d{2,3})$/);
+    if (match) {
+      let start = parseInt(match[1], 10);
+      let end = parseInt(match[2], 10);
+      for (let i = start; i <= end; i += 5) {
+        result.push(i.toString());
+      }
+    } else if (part !== '') {
+      result.push(part);
+    }
+  });
+
+  return result;
 }
   </script>
 </body>
