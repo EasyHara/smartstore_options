@@ -19,8 +19,13 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>📃 스마트스토어 옵션 자동 생성기</h1>
+<div class="container">
+  <h1>📃 스마트스토어 옵션 자동 생성기</h1>
+  <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
+    ※ 사이즈 입력 안내: <br>
+    - <strong>~</strong> 는 5단위 간격 자동 생성 (예: <code>230~240</code> → <code>230, 235, 240</code>)<br>
+    - <strong>,</strong> 와 <strong>/</strong> 는 개별 사이즈 구분자로 사용 (예: <code>230,235/245</code>)
+  </p>
     <input type="file" id="inputFile" accept=".xls,.xlsx">
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
     <br>
@@ -123,8 +128,8 @@ function downloadRepresentative() {
   items.forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
     const optionPrefix = `${순번}) ${combine ? item.상품명 + ' / ' : ''}`;
-    const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = expandSizes(item.사이즈 || '');
+    const 색상목록 = parseOptions(item.색상);
+    const 사이즈목록 = parseOptions(item.사이즈);
     const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
     const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
 
@@ -158,8 +163,8 @@ function generateZip() {
   const zip = new JSZip();
 
   rows.forEach(item => {
-    const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = expandSizes(item.사이즈 || '');
+    const 색상목록 = parseOptions(item.색상);
+    const 사이즈목록 = parseOptions(item.사이즈);
     const 품절색 = (item.품절된색상 || '').split(/[,/]/).map(s => s.trim());
     const 품절사이즈 = (item.품절된사이즈 || '').split(/[,/]/).map(s => s.trim());
     const 대표상품명 = item.상품명;
@@ -173,8 +178,8 @@ function generateZip() {
     items.forEach(it => {
       const 순번 = (index < 10 ? `0${index}` : index);
       const prefix = `${순번}) `;
-      const 색상목록2 = (it.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-      const 사이즈목록2 = expandSizes(it.사이즈 || '');
+      const 색상목록2 = parseOptions(it.색상);
+      const 사이즈목록2 = parseOptions(it.사이즈);
       색상목록2.forEach(color => {
         사이즈목록2.forEach(size => {
           const 품절 = 품절색.includes(color) || 품절사이즈.includes(size);
@@ -218,8 +223,8 @@ function downloadAddOptionExcel() {
   let data = [];
   items.forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
-    const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = expandSizes(item.사이즈 || '');
+    const 색상목록 = parseOptions(item.색상);
+    const 사이즈목록 = parseOptions(item.사이즈);
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
@@ -250,9 +255,9 @@ function downloadSingleProductExcel() {
   if (!대표) return;
 
   const data = [];
-  const 색상목록 = (대표.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-  const 사이즈목록 = expandSizes(대표.사이즈 || '');
-  const 품절조합 = (대표.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
+  const 색상목록 = parseOptions(대표.색상);
+  const 사이즈목록 = parseOptions(대표.사이즈);
+  const 품절조합 = (대표.품절된조합 || '').split(/[\n,/]/).map(s => s.trim());
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
 
   색상목록.forEach(color => {
@@ -281,9 +286,9 @@ function downloadSingleProductExcelAll() {
   const zip = new JSZip();
 
   rows.forEach(item => {
-    const 색상목록 = (item.색상 || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    const 사이즈목록 = expandSizes(item.사이즈 || '');
-    const 품절조합 = (item.품절된조합 || '').split(/[\n,\/]/).map(s => s.trim());
+    const 색상목록 = parseOptions(item.색상);
+    const 사이즈목록 = parseOptions(item.사이즈);
+    const 품절조합 = (item.품절된조합 || '').split(/[\n,/]/).map(s => s.trim());
     const 상품명 = item["1번 상품명"] || item.상품명;
 
     let data = [];
@@ -314,26 +319,21 @@ function downloadSingleProductExcelAll() {
     saveAs(content, "단품등록_전체다운로드.zip");
   });
 }
-    // 사이즈 자동 확장 함수 (예: "230~290" → [230, 235, ..., 290])
-function expandSizes(input) {
-  const result = [];
-  const parts = input.split(/[,/]/).map(p => p.trim());
 
-  parts.forEach(part => {
-    const match = part.match(/^(\d{2,3})~(\d{2,3})$/);
-    if (match) {
-      let start = parseInt(match[1], 10);
-      let end = parseInt(match[2], 10);
-      for (let i = start; i <= end; i += 5) {
-        result.push(i.toString());
-      }
-    } else if (part !== '') {
-      result.push(part);
+    // 사이즈 또는 색상 목록 파싱 함수 (범위 및 구분자 인식)
+function parseOptions(input) {
+  if (!input) return [];
+  return input.split(/[,/]/).flatMap(part => {
+    part = part.trim();
+    if (/^\d{2,3}~\d{2,3}$/.test(part)) {
+      const [start, end] = part.split('~').map(Number);
+      const values = [];
+      for (let i = start; i <= end; i += 5) values.push(String(i));
+      return values;
     }
-  });
-
-  return result;
-}
+    return part;
+  }).filter(Boolean);
+} 
   </script>
 </body>
 </html>
