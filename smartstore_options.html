@@ -161,6 +161,7 @@ function downloadRepresentative() {
 }
 
 // 일괄 엑셀 다운로드 ZIP - 사이즈 확장 적용
+function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
   const zip = new JSZip();
@@ -215,35 +216,10 @@ function downloadRepresentative() {
     saveAs(content, "옵션_일괄다운로드.zip");
   });
 }
-
-function parseOptions(str) {
-  return (str || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
-}
-
-function expandSizes(input) {
-  const result = [];
-  const parts = input.split(/[,/]/).map(p => p.trim());
-
-  parts.forEach(part => {
-    const match = part.match(/^(\d{2,3})~(\d{2,3})$/);
-    if (match) {
-      let start = parseInt(match[1], 10);
-      let end = parseInt(match[2], 10);
-      for (let i = start; i <= end; i += 5) {
-        result.push(i.toString());
-      }
-    } else if (part !== '') {
-      result.push(part);
-    }
-  });
-
-  return result;
-}
     // 추가상품 엑셀 다운로드
 function downloadAddProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
-
   const 대표 = rows.find(r => r.대표) || rows[0];
   const 대표그룹 = 대표["1번 상품명"];
   const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
@@ -254,16 +230,15 @@ function downloadAddProductExcel() {
   items.forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
     const 색상목록 = parseOptions(item.색상);
-    const 사이즈목록 = expandSizes(item.사이즈);
-
+    const 사이즈목록 = parseOptions(item.사이즈);
     색상목록.forEach(color => {
-      사이즈목록.forEach(() => {
+      사이즈목록.forEach(size => {
         data.push({
-          추가상품명: '제품선택',
+          추가상품명: "제품선택",
           추가상품값: `${순번}) ${item.상품명} / ${color}`,
           추가상품가: item.판매가,
           재고수량: 99999,
-          사용여부: 'Y',
+          사용여부: "Y",
           관리코드: item.상품명
         });
       });
@@ -271,15 +246,16 @@ function downloadAddProductExcel() {
     index++;
   });
 
-  const cleanData = data.map(({ 추가상품명, 추가상품값, 추가상품가, 재고수량, 사용여부, 관리코드 }) => ({
-    추가상품명, 추가상품값, 추가상품가, 재고수량, 사용여부, 관리코드
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(cleanData);
+  if (data.length === 0) return alert("추가상품 데이터가 없습니다.");
+  const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "추가상품");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_${대표.상품명}.xls`);
+}
+
+function parseOptions(str) {
+  return (str || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
 }
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
