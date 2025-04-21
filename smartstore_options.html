@@ -161,9 +161,8 @@ function downloadRepresentative() {
 }
 
 // 일괄 엑셀 다운로드 ZIP - 사이즈 확장 적용
-function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) return alert("데이터가 없습니다.");
+  if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
   const zip = new JSZip();
   const 그룹들 = [...new Set(rows.map(r => r["1번 상품명"]))];
 
@@ -181,15 +180,14 @@ function generateZip() {
       const 순번 = (index < 10 ? `0${index}` : index);
       const optionPrefix = `${순번}) ${item.상품명} / `;
       const 색상목록 = parseOptions(item.색상);
-      const 사이즈목록 = expandSizes(item.사이즈);
-      const 품절조합 = (item.품절된조합 || '').split(/[\n,/]/).map(s => s.trim());
+      const 사이즈목록 = parseOptions(item.사이즈);
+      const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
 
       색상목록.forEach(color => {
         사이즈목록.forEach(size => {
           const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
           data.push({
             제품선택: `${optionPrefix}${color}`,
-            색상: color,
             사이즈: size,
             옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
@@ -202,7 +200,10 @@ function generateZip() {
     });
 
     if (data.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(data);
+      const cleanData = data.map(({ 제품선택, 사이즈, 옵션가, 재고수량, 관리코드, 사용여부 }) => ({
+        제품선택, 사이즈, 옵션가, 재고수량, 관리코드, 사용여부
+      }));
+      const ws = XLSX.utils.json_to_sheet(cleanData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
