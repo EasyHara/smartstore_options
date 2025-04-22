@@ -289,6 +289,7 @@ function downloadSingleProductExcel() {
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
 }
+    
 // 단품등록용 전체 엑셀 ZIP 다운로드 - 모든 상품 각각 전체 색상/사이즈 조합 출력
 function downloadSingleProductExcelAll() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -330,19 +331,28 @@ function downloadSingleProductExcelAll() {
   });
 }
 
-    // 사이즈 또는 색상 목록 파싱 함수 (범위 및 구분자 인식)
-function parseOptions(input) {
+// 사이즈 자동 확장 함수 (230~250 → 230, 235, 240, 245, 250)
+function expandSizes(input) {
   if (!input) return [];
   return input.split(/[,/]/).flatMap(part => {
     part = part.trim();
-    if (/^\d{2,3}~\d{2,3}$/.test(part)) {
+    const match = part.match(/^\d{2,3}~\d{2,3}$/);
+    if (match) {
       const [start, end] = part.split('~').map(Number);
-      const values = [];
-      for (let i = start; i <= end; i += 5) values.push(String(i));
-      return values;
+      const sizes = [];
+      for (let i = start; i <= end; i += 5) {
+        sizes.push(i.toString());
+      }
+      return sizes;
     }
-    return part;
+    return [part];
   }).filter(Boolean);
+}
+
+// 색상/사이즈 분리 함수
+function parseOptions(input) {
+  if (!input) return [];
+  return input.split(/[,/]/).map(s => s.trim()).filter(Boolean);
 }
   </script>
 </body>
