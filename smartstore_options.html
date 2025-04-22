@@ -128,28 +128,28 @@ function downloadRepresentative() {
   let index = 1;
   const data = [];
 
-  items.forEach(item => {
-    const 순번 = (index < 10 ? `0${index}` : index);
-    const optionPrefix = `${순번}) ${item.상품명} / `;
-    const 색상목록 = parseOptions(item.색상);
-    const 사이즈목록 = parseOptions(item.사이즈);
-    const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
+items.forEach(item => {
+  const 순번 = (index < 10 ? `0${index}` : index);
+  const optionPrefix = `${순번}) ${item.상품명} / `;
+  const 색상목록 = parseOptions(item.색상);
+  const 사이즈목록 = expandSizes(item.사이즈); // ✅ 이 부분이 핵심
+  const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
 
-    색상목록.forEach(color => {
-      사이즈목록.forEach(size => {
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-        data.push({
-          제품선택: `${optionPrefix}${color}`,
-          사이즈: size,
-          옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: item.상품명,
-          사용여부: "Y"
-        });
+  색상목록.forEach(color => {
+    사이즈목록.forEach(size => {
+      const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+      data.push({
+        제품선택: `${optionPrefix}${color}`,
+        사이즈: size,
+        옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+        재고수량: 품절 ? 0 : 99999,
+        관리코드: item.상품명,
+        사용여부: "Y"
       });
     });
-    index++;
   });
+  index++;
+});
 
   if (!data.length) return alert("출력할 데이터가 없습니다.");
 
