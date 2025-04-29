@@ -123,17 +123,22 @@ function downloadRepresentative() {
 
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
-  const items = rows.filter(r => r.상품명 === 대표상품명);
+  const 대표1번명 = 대표["1번 상품명"] || "";
 
   let index = 1;
   const data = [];
 
-  items.forEach(item => {
+  rows.forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
-    const optionPrefix = `${순번}) ${item.상품명} / `;
+    const isRepresentative = item === 대표;
+    const baseName = isRepresentative
+      ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}`
+      : item.상품명;
+    const optionPrefix = `${순번}) ${baseName} / `;
+
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
-    const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
+    const 품절조합 = parseOptions(item.품절된조합);
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
@@ -141,7 +146,7 @@ function downloadRepresentative() {
         data.push({
           제품선택: `${optionPrefix}${color}`,
           사이즈: size,
-          옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+          옵션가: isRepresentative ? 0 : item.판매가 - 대표판매가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
           사용여부: "Y"
