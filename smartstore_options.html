@@ -117,13 +117,13 @@
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("데이터가 없습니다.");
+
   const 대표 = rows.find(r => r.대표) || rows[0];
   if (!대표) return alert("대표 상품이 없습니다.");
 
   const 대표판매가 = 대표.판매가;
-  const 대표상품명 = 대표.상품명;
-  const 대표그룹 = 대표.상품명; // ✅ 여기 수정: 1번 상품명 대신 상품명
-  const items = rows.filter(r => r.상품명 === 대표그룹 && !r.제외);
+  const 대표상품명 = 대표.상품명; // 🔥 상품명 기준
+  const items = rows.filter(r => r.상품명 === 대표상품명 && !r.제외); // 🔥 상품명 기준
 
   let index = 1;
   const data = [];
@@ -165,15 +165,17 @@ function downloadRepresentative() {
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
+
   const zip = new JSZip();
-  const 그룹들 = [...new Set(rows.map(r => r.상품명))]; // ✅ 여기 상품명 기준
+  const 그룹들 = [...new Set(rows.map(r => r.상품명))]; // 🔥 상품명 기준으로 그룹
 
   그룹들.forEach(그룹 => {
     const 그룹상품들 = rows.filter(r => r.상품명 === 그룹 && !r.제외);
     if (그룹상품들.length === 0) return;
+
     const 대표 = 그룹상품들[0];
     const 대표판매가 = 대표.판매가;
-    const 대표상품명 = 대표.상품명;
+    const 대표상품명 = 대표.상품명; // 🔥 상품명
 
     let index = 1;
     const data = [];
@@ -202,7 +204,11 @@ function generateZip() {
     });
 
     if (data.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(data);
+      const cleanData = data.map(({ 제품선택, 사이즈, 옵션가, 재고수량, 관리코드, 사용여부 }) => ({
+        제품선택, 사이즈, 옵션가, 재고수량, 관리코드, 사용여부
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(cleanData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
@@ -214,6 +220,7 @@ function generateZip() {
     saveAs(content, "옵션_일괄다운로드.zip");
   });
 }
+
 
     // 추가상품 엑셀 다운로드
 function downloadAddProductExcel() {
