@@ -92,14 +92,14 @@
   return Array.from(rows).map(row => {
     const cells = row.querySelectorAll("input");
     return {
-      대표: cells[0].checked,
-      상품명: cells[1].value,
-      판매가: parseInt(cells[2].value) || 0,
-      색상: cells[3].value,
-      사이즈: cells[4].value,
-      ["1번 상품명"]: cells[5].value,
-      품절된조합: cells[6].value,
-      제외: cells[7].checked
+      대표: cells[0]?.checked ?? false,
+      상품명: cells[1]?.value?.trim() || "",
+      판매가: parseInt(cells[2]?.value) || 0,
+      색상: cells[3]?.value?.trim() || "",
+      사이즈: cells[4]?.value?.trim() || "",
+      ["1번 상품명"]: cells[5]?.value?.trim() || "",
+      품절된조합: cells[6]?.value?.trim() || "",
+      제외: cells[7]?.checked ?? false
     };
   });
 }
@@ -117,39 +117,45 @@
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("데이터가 없습니다.");
+  
   const 대표 = rows.find(r => r.대표) || rows[0];
   if (!대표) return alert("대표 상품이 없습니다.");
 
+  const 대표그룹 = 대표["1번 상품명"]?.trim() || 대표.상품명.trim();
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
-  const 대표그룹 = 대표["1번 상품명"];
-  const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
+
+  const items = rows.filter(r => {
+    const group = r["1번 상품명"]?.trim() || r.상품명.trim();
+    return group === 대표그룹 && !r.제외;
+  });
 
   let index = 1;
   const data = [];
 
-items.forEach(item => {
-  const 순번 = (index < 10 ? `0${index}` : index);
-  const optionPrefix = `${순번}) ${item.상품명} / `;
-  const 색상목록 = parseOptions(item.색상);
-  const 사이즈목록 = expandSizes(item.사이즈); // ✅ 이 부분이 핵심
-  const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
+  items.forEach(item => {
+    const 순번 = (index < 10 ? `0${index}` : index);
+    const optionPrefix = `${순번}) ${item.상품명} / `;
+    const 색상목록 = parseOptions(item.색상);
+    const 사이즈목록 = expandSizes(item.사이즈);
+    const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
 
-  색상목록.forEach(color => {
-    사이즈목록.forEach(size => {
-      const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-      data.push({
-        제품선택: `${optionPrefix}${color}`,
-        사이즈: size,
-        옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
-        재고수량: 품절 ? 0 : 99999,
-        관리코드: item.상품명,
-        사용여부: "Y"
+    색상목록.forEach(color => {
+      사이즈목록.forEach(size => {
+        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+        data.push({
+          제품선택: `${optionPrefix}${color}`,
+          사이즈: size,
+          옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+          재고수량: 품절 ? 0 : 99999,
+          관리코드: item.상품명,
+          사용여부: "Y"
+        });
       });
     });
+
+    index++;
   });
-  index++;
-});
 
   if (!data.length) return alert("출력할 데이터가 없습니다.");
 
@@ -220,27 +226,25 @@ function generateZip() {
 function downloadAddProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
+
   const 대표 = rows.find(r => r.대표) || rows[0];
-  const 대표그룹 = 대표["1번 상품명"];
-  const items = rows.filter(r => r["1번 상품명"] === 대표그룹 && !r.제외);
+  const 대표그룹 = 대표["1번 상품명"] || 대표.상품명;
+  const items = rows.filter(r => (r["1번 상품명"] || r.상품명) === 대표그룹 && !r.제외);
 
   let index = 1;
   const data = [];
 
   items.forEach(item => {
-    const 순번 = (index < 10 ? `0${index}` : index);
     const 색상목록 = parseOptions(item.색상);
-    const 사이즈목록 = parseOptions(item.사이즈);
+
     색상목록.forEach(color => {
-      사이즈목록.forEach(size => {
-        data.push({
-          추가상품명: "제품선택",
-          추가상품값: `${순번}) ${item.상품명} / ${color}`,
-          추가상품가: item.판매가,
-          재고수량: 99999,
-          사용여부: "Y",
-          관리코드: item.상품명
-        });
+      data.push({
+        추가상품명: "제품선택",
+        추가상품값: `${index < 10 ? '0' + index : index}) ${item.상품명} / ${color}`,
+        추가상품가: item.판매가,
+        재고수량: 99999,
+        사용여부: "Y",
+        관리코드: item.상품명
       });
     });
     index++;
@@ -254,6 +258,7 @@ function downloadAddProductExcel() {
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_${대표.상품명}.xls`);
 }
 
+// 색상 구분용 함수
 function parseOptions(str) {
   return (str || '').split(/[,/]/).map(s => s.trim()).filter(Boolean);
 }
@@ -269,6 +274,7 @@ function downloadSingleProductExcel() {
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
 
   const data = [];
+
   색상목록.forEach(color => {
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
@@ -302,19 +308,25 @@ function downloadSingleProductExcel() {
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
 }
     
-// 단품등록용 전체 엑셀 ZIP 다운로드 - 모든 상품 각각 전체 색상/사이즈 조합 출력
+// 단품등록용 전체 엑셀 ZIP 다운로드
 function downloadSingleProductExcelAll() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
   const zip = new JSZip();
 
-  rows.forEach(item => {
-    const 색상목록 = parseOptions(item.색상);
-    const 사이즈목록 = expandSizes(item.사이즈);
-    const 품절조합 = (item.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
-    const 상품명 = item["1번 상품명"] || item.상품명;
+  const 그룹들 = [...new Set(rows.map(r => r["1번 상품명"] || r.상품명))];
+
+  그룹들.forEach(그룹 => {
+    const items = rows.filter(r => (r["1번 상품명"] || r.상품명) === 그룹 && !r.제외);
+    if (items.length === 0) return;
+    const 대표 = items[0];
+    const 색상목록 = parseOptions(대표.색상);
+    const 사이즈목록 = expandSizes(대표.사이즈);
+    const 품절조합 = (대표.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
+    const 상품명 = 대표["1번 상품명"] || 대표.상품명;
 
     const data = [];
+
     색상목록.forEach(color => {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
@@ -323,7 +335,7 @@ function downloadSingleProductExcelAll() {
           색상: color,
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
-          관리코드: item.상품명,
+          관리코드: 대표.상품명,
           사용여부: "Y"
         });
       } else {
@@ -334,7 +346,7 @@ function downloadSingleProductExcelAll() {
             사이즈: size,
             옵션가: 0,
             재고수량: 품절 ? 0 : 99999,
-            관리코드: item.상품명,
+            관리코드: 대표.상품명,
             사용여부: "Y"
           });
         });
@@ -346,7 +358,7 @@ function downloadSingleProductExcelAll() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`단품등록_${item.상품명}.xls`, wbout);
+      zip.file(`단품등록_${대표.상품명}.xls`, wbout);
     }
   });
 
@@ -354,6 +366,7 @@ function downloadSingleProductExcelAll() {
     saveAs(content, "단품등록_전체다운로드.zip");
   });
 }
+
 
 // 사이즈 자동 확장 함수 (230~250 → 230, 235, 240, 245, 250)
 function expandSizes(input) {
