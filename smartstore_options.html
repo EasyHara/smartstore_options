@@ -113,17 +113,17 @@
       saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스마트스토어_양식.xlsx`);
     }
     
-// 대표상품 기준 엑셀 다운로드 확장 사이즈 적용
+// 대표상품 기준 엑셀 다운로드 (확장 사이즈 적용)
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) return alert("데이터가 없습니다.");
+  if (!rows.length) return alert("데이터가 없습니다.");
 
   const 대표 = rows.find(r => r.대표) || rows[0];
   if (!대표) return alert("대표 상품이 없습니다.");
 
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
-  const items = rows.filter(r => r.상품명 === 대표상품명 && !r.제외);
+  const items = rows.filter(r => r.상품명 === 대표상품명);
 
   let index = 1;
   const data = [];
@@ -160,21 +160,18 @@ function downloadRepresentative() {
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${대표상품명}.xls`);
 }
 
-// 일괄 엑셀 다운로드 ZIP - 사이즈 확장 적용
+// 일괄 엑셀 ZIP 다운로드 (확장 사이즈 적용)
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
+  if (!rows.length) return alert("출력할 데이터가 없습니다.");
 
   const zip = new JSZip();
   const 그룹들 = [...new Set(rows.map(r => r.상품명))];
 
   그룹들.forEach(그룹 => {
-    const 그룹상품들 = rows.filter(r => r.상품명 === 그룹 && !r.제외);
-    if (그룹상품들.length === 0) return;
-
+    const 그룹상품들 = rows.filter(r => r.상품명 === 그룹);
     const 대표 = 그룹상품들.find(r => r.대표) || 그룹상품들[0];
     const 대표판매가 = 대표.판매가;
-    const 대표상품명 = 대표.상품명;
 
     let index = 1;
     const data = [];
@@ -202,26 +199,17 @@ function generateZip() {
       index++;
     });
 
-    if (data.length > 0) {
-      const cleanData = data.map(({ 제품선택, 사이즈, 옵션가, 재고수량, 관리코드, 사용여부 }) => ({
-        제품선택, 사이즈, 옵션가, 재고수량, 관리코드, 사용여부
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(cleanData);
+    if (data.length) {
+      const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`${대표상품명}.xls`, wbout);
+      zip.file(`${대표.상품명}.xls`, wbout);
     }
   });
 
   zip.generateAsync({ type: "blob" }).then(content => {
     saveAs(content, "옵션_일괄다운로드.zip");
-  });
-}
-
-  zip.generateAsync({ type: "blob" }).then(content => {
-    saveAs(content, "옵션_일감다운로드.zip");
   });
 }
     // 추가상품 엑셀 다운로드
@@ -376,7 +364,7 @@ function downloadSingleProductExcelAll() {
   });
 }
 
-// 사이즈 자동 확장 함수 (230~250 → 230, 235, 240, 245, 250)
+// 사이즈 자동 확장 함수 (예: 230~250 -> 230, 235, 240, 245, 250)
 function expandSizes(input) {
   if (!input) return [];
   return input.split(/[,/]/).flatMap(part => {
@@ -390,11 +378,6 @@ function expandSizes(input) {
     }
     return [part];
   }).filter(Boolean);
-}
-
-function parseOptions(input) {
-  if (!input) return [];
-  return input.split(/[,/]/).map(s => s.trim()).filter(Boolean);
 }
 
 // 색상/사이즈 분리 함수
