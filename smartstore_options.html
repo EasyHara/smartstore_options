@@ -126,7 +126,11 @@ function downloadRepresentative() {
   const 대표1번명 = 대표["1번 상품명"] || "";
 
   let index = 1;
-  const data = [];
+items.forEach(item => {
+  const 순번 = index < 10 ? `0${index}` : `${index}`;
+  ...
+  index++;
+});
 
   rows.forEach(item => {
     const 순번 = (index < 10 ? `0${index}` : index);
@@ -174,14 +178,19 @@ function generateZip() {
   const 그룹들 = [...new Set(rows.map(r => r.상품명))];
 
   그룹들.forEach(상품명 => {
-    const 그룹상품들 = rows.filter(r => r.상품명 === 상품명);
+  .filter(r => r.상품명 === 그룹 && !r.제외)
+  .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
     const 대표 = 그룹상품들.find(r => r.대표) || 그룹상품들[0];
     const 대표판매가 = 대표.판매가;
     const 대표1번명 = 대표["1번 상품명"] || "";
 
     let index = 1;
-    const data = [];
-
+    items.forEach(item => {
+    const 순번 = index < 10 ? `0${index}` : `${index}`;
+    ...
+    index++;
+    });
+    
     그룹상품들.forEach(item => {
       const 순번 = (index < 10 ? `0${index}` : index);
       const isRepresentative = item === 대표;
@@ -232,7 +241,9 @@ function downloadAddProductExcel() {
 
   const 대표상품명 = 대표.상품명;
   const 대표그룹 = 대표.상품명; // ✅ 1번 상품명(X), 상품명(O)
-  const items = rows.filter(r => r.상품명 === 대표그룹 && !r.제외);
+  const items = rows
+  .filter(r => r.상품명 === 대표.상품명 && !r.제외)
+  .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
 
   let index = 1;
   const data = [];
