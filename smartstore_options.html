@@ -124,7 +124,6 @@ function downloadRepresentative() {
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
 
-  // ✅ 제외만 제거하고 전체 출력, 대표만 위로 정렬
   const items = rows
     .filter(r => !r.제외)
     .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
@@ -134,18 +133,26 @@ function downloadRepresentative() {
 
   items.forEach(item => {
     const 순번 = index < 10 ? `0${index}` : `${index}`;
-    const optionPrefix = `${순번}) ${item.상품명} / `;
+    const is대표 = item === 대표;
+    const 브랜드 = item.상품명.split(" ")[0]; // 브랜드명은 상품명 첫 단어
+    const 상품이름 = is대표 ? `${브랜드} ${item["1번 상품명"]}` : item.상품명;
+    const optionPrefix = `${순번}) ${상품이름} / `;
+
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
     const 품절조합 = parseOptions(item.품절된조합);
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+        const 품절 =
+          품절조합.includes(color) ||
+          품절조합.includes(size) ||
+          품절조합.includes(`${color}-${size}`);
+
         data.push({
           제품선택: `${optionPrefix}${color}`,
           사이즈: size,
-          옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+          옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
           사용여부: "Y"
@@ -165,7 +172,6 @@ function downloadRepresentative() {
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${대표상품명}.xls`);
 }
 
-
 // 일괄 엑셀 ZIP 다운로드 (확장 사이즈 적용)
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -177,7 +183,6 @@ function generateZip() {
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
 
-  // ✅ 제외된 상품 빼고 모두 포함, 대표는 맨 앞으로 정렬
   const items = rows
     .filter(r => !r.제외)
     .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
@@ -187,18 +192,26 @@ function generateZip() {
 
   items.forEach(item => {
     const 순번 = index < 10 ? `0${index}` : `${index}`;
-    const optionPrefix = `${순번}) ${item.상품명} / `;
+    const is대표 = item === 대표;
+    const 브랜드 = item.상품명.split(" ")[0];
+    const 상품이름 = is대표 ? `${브랜드} ${item["1번 상품명"]}` : item.상품명;
+    const optionPrefix = `${순번}) ${상품이름} / `;
+
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
     const 품절조합 = parseOptions(item.품절된조합);
 
     색상목록.forEach(color => {
       사이즈목록.forEach(size => {
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+        const 품절 =
+          품절조합.includes(color) ||
+          품절조합.includes(size) ||
+          품절조합.includes(`${color}-${size}`);
+
         data.push({
           제품선택: `${optionPrefix}${color}`,
           사이즈: size,
-          옵션가: item === 대표 ? 0 : item.판매가 - 대표판매가,
+          옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
           사용여부: "Y"
@@ -216,8 +229,6 @@ function generateZip() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
     const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-
-    // ✅ 대표 상품명을 파일명으로 지정
     zip.file(`${대표상품명}.xls`, wbout);
   }
 
