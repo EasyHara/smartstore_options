@@ -247,6 +247,21 @@ function generateZip() {
       data.forEach(row => {
         delete row.색상;
       });
+    }
+
+    if (data.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+      zip.file(`${대표상품명}.xls`, wbout);
+    }
+  });
+
+  zip.generateAsync({ type: "blob" }).then(content => {
+    saveAs(content, "옵션_일괄다운로드.zip");
+  });
+}
 
     // 추가상품 엑셀 다운로드
 function downloadAddProductExcel() {
