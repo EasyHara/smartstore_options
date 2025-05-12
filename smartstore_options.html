@@ -184,8 +184,8 @@ function generateZip() {
     const 순번 = index < 10 ? `0${index}` : `${index}`;
     const 브랜드 = item.상품명.split(" ")[0];
     const 상품이름 = `${브랜드} ${item["1번 상품명"] || item.상품명}`;
-    const optionPrefix = `${순번}) ${상품이름} / `;
-    const 파일이름 = item.상품명.replace(/[\\/:*?"<>|]/g, ""); // 파일명으로 상품명 사용
+    const optionPrefix = `${순번}) ${상품이름}`;
+    const 파일이름 = item.상품명.replace(/[\\/:*?"<>|]/g, ""); // 파일명 안전 처리
 
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
@@ -194,21 +194,33 @@ function generateZip() {
     const data = [];
 
     색상목록.forEach(color => {
-      사이즈목록.forEach(size => {
-        const 품절 =
-          품절조합.includes(color) ||
-          품절조합.includes(size) ||
-          품절조합.includes(`${color}-${size}`);
-
+      if (사이즈목록.length === 0) {
+        const 품절 = 품절조합.includes(color);
         data.push({
-          제품선택: `${optionPrefix}${color}`,
-          사이즈: size,
+          제품선택: `${optionPrefix} / ${color}`,
+          사이즈: "",
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
           사용여부: "Y"
         });
-      });
+      } else {
+        사이즈목록.forEach(size => {
+          const 품절 =
+            품절조합.includes(color) ||
+            품절조합.includes(size) ||
+            품절조합.includes(`${color}-${size}`);
+
+          data.push({
+            제품선택: `${optionPrefix} / ${color}`,
+            사이즈: size,
+            옵션가: 0,
+            재고수량: 품절 ? 0 : 99999,
+            관리코드: item.상품명,
+            사용여부: "Y"
+          });
+        });
+      }
     });
 
     if (data.length > 0) {
