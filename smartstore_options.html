@@ -181,9 +181,8 @@ function generateZip() {
 
   rows.forEach(targetItem => {
     const 대표판매가 = targetItem.판매가;
-    const 대표상품명 = targetItem.상품명.replace(/[\\/:*?"<>|]/g, ""); // 안전한 파일명
+    const 대표상품명 = targetItem.상품명.replace(/[\\/:*?"<>|]/g, "");
 
-    // ✅ 대표 상품이 항상 첫 번째가 되도록 정렬
     const items = rows
       .filter(r => !r.제외)
       .sort((a, b) => (a === targetItem ? -1 : b === targetItem ? 1 : 0));
@@ -208,8 +207,8 @@ function generateZip() {
         if (사이즈목록.length === 0) {
           const 품절 = 품절조합.includes(color);
           data.push({
-            제품선택: `${optionPrefix} / ${color}`,
-            사이즈: "", // 사이즈 열은 아래 조건에서 제거됨
+            제품선택: `${optionPrefix}`,
+            색상: color,
             옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
@@ -236,26 +235,18 @@ function generateZip() {
       index++;
     });
 
-    // ✅ 사이즈 열 제거
+    // 열 제거/변경 조건 처리
     const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
     if (!hasAnySize) {
-      data.forEach(row => delete row.사이즈);
-    }
-
-    // ✅ 파일로 저장
-    if (data.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`${대표상품명}.xls`, wbout);
-    }
-  });
-
-  zip.generateAsync({ type: "blob" }).then(content => {
-    saveAs(content, "옵션_일괄다운로드.zip");
-  });
-}
+      // 사이즈 없으면 사이즈 열 제거, 색상 열 유지
+      data.forEach(row => {
+        delete row.사이즈;
+      });
+    } else {
+      // 사이즈 있으면 색상 열 제거
+      data.forEach(row => {
+        delete row.색상;
+      });
 
     // 추가상품 엑셀 다운로드
 function downloadAddProductExcel() {
