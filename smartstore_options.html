@@ -205,7 +205,7 @@ function generateZip() {
           const 품절 = 품절조합.includes(color);
           data.push({
             제품선택: `${optionPrefix} / ${color}`,
-            사이즈: "",
+            사이즈: "", // 임시로 빈값 넣어두고, 아래에서 조건에 따라 제거
             옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
@@ -232,7 +232,12 @@ function generateZip() {
       index++;
     });
 
-    // 저장
+    // ✅ [NEW] 사이즈 열 제거: 전체가 빈 값이면 열 제거
+    const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
+    if (!hasAnySize) {
+      data.forEach(row => delete row.사이즈);
+    }
+
     if (data.length > 0) {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
