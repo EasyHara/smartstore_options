@@ -185,7 +185,7 @@ function generateZip() {
     const 브랜드 = item.상품명.split(" ")[0];
     const 상품이름 = `${브랜드} ${item["1번 상품명"] || item.상품명}`;
     const optionPrefix = `${순번}) ${상품이름} / `;
-    const 대표상품명 = item["1번 상품명"] || item.상품명;
+    const 파일이름 = item.상품명.replace(/[\\/:*?"<>|]/g, ""); // 파일명에 사용할 상품명 (윈도우 불가 문자 제거)
 
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
@@ -216,17 +216,7 @@ function generateZip() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`${대표상품명}.xls`, wbout);
-    }
-
-    index++;
-  });
-
-  zip.generateAsync({ type: "blob" }).then(content => {
-    saveAs(content, "옵션_일괄다운로드.zip");
-  });
-}
-
+      zip.file(`${파일
 
     // 추가상품 엑셀 다운로드
 function downloadAddProductExcel() {
