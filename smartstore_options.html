@@ -110,7 +110,7 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스마트스토어_양식.xlsx`);
+      saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스스_옵션양식.xlsx`);
     }
     
 // 대표상품 기준 엑셀 다운로드 (확장 사이즈 적용)
