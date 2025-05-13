@@ -208,7 +208,7 @@ function generateZip() {
 
   rows.forEach(targetItem => {
     const 대표판매가 = targetItem.판매가;
-    const 대표상품명 = targetItem.상품명.replace(/[\\/:*?"<>|]/g, "");
+    const 대표상품명 = (targetItem.상품명 || "").replace(/[\\/:*?"<>|]/g, "");
 
     const items = rows
       .filter(r => !r.제외)
@@ -220,22 +220,26 @@ function generateZip() {
     items.forEach(item => {
       const 순번 = index < 10 ? `0${index}` : `${index}`;
       const is대표 = item === targetItem;
-      const 브랜드 = item.상품명.split(" ")[0];
+
       const 상품이름 = is대표
-        ? `${브랜드} ${item["1번 상품명"] || item.상품명}`
+        ? (item["1번 상품명"] || item.상품명)
         : item.상품명;
-      const optionPrefix = `${순번}) ${상품이름}`;
 
       const 색상목록 = parseOptions(item.색상);
       const 사이즈목록 = expandSizes(item.사이즈);
       const 품절조합 = parseOptions(item.품절된조합);
 
-      색상목록.forEach(color => {
+      const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
+
+      색상배열.forEach(color => {
+        const 제품선택기본 = color.trim()
+          ? `${순번}) ${상품이름} / ${color.trim()}`
+          : `${순번}) ${상품이름}`;
+
         if (사이즈목록.length === 0) {
           const 품절 = 품절조합.includes(color);
           data.push({
-            제품선택: `${optionPrefix}`,
-            색상: color,
+            제품선택: 제품선택기본,
             옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
@@ -248,7 +252,7 @@ function generateZip() {
               품절조합.includes(size) ||
               품절조합.includes(`${color}-${size}`);
             data.push({
-              제품선택: `${optionPrefix} / ${color}`,
+              제품선택: 제품선택기본,
               사이즈: size,
               옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
               재고수량: 품절 ? 0 : 99999,
@@ -262,19 +266,13 @@ function generateZip() {
       index++;
     });
 
-    // 열 제거/변경 조건 처리
+    // 열 정리
     const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
     if (!hasAnySize) {
-      // 사이즈 없으면 사이즈 열 제거, 색상 열 유지
-      data.forEach(row => {
-        delete row.사이즈;
-      });
-    } else {
-      // 사이즈 있으면 색상 열 제거
-      data.forEach(row => {
-        delete row.색상;
-      });
+      data.forEach(row => delete row.사이즈);
     }
+    // 색상 열은 항상 제거
+    data.forEach(row => delete row.색상);
 
     if (data.length > 0) {
       const ws = XLSX.utils.json_to_sheet(data);
