@@ -144,13 +144,16 @@ function downloadRepresentative() {
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
     const 품절조합 = parseOptions(item.품절된조합);
-
     const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
     색상배열.forEach(color => {
-      const 제품선택기본 = color.trim()
-        ? `${순번}) ${상품이름} / ${color.trim()}`
-        : `${순번}) ${상품이름}`;
+      let 제품선택기본 = `${순번}) ${상품이름} / ${color.trim()}`;
+      if (제품선택기본.length > 25) {
+        제품선택기본 = `${순번}) ${상품이름}/${color.trim()}`;
+      }
+      if (제품선택기본.length > 25) {
+        제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
+      }
 
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
@@ -226,13 +229,16 @@ function generateZip() {
       const 색상목록 = parseOptions(item.색상);
       const 사이즈목록 = expandSizes(item.사이즈);
       const 품절조합 = parseOptions(item.품절된조합);
-
       const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
       색상배열.forEach(color => {
-        const 제품선택기본 = color.trim()
-          ? `${순번}) ${상품이름} / ${color.trim()}`
-          : `${순번}) ${상품이름}`;
+        let 제품선택기본 = `${순번}) ${상품이름} / ${color.trim()}`;
+        if (제품선택기본.length > 25) {
+          제품선택기본 = `${순번}) ${상품이름}/${color.trim()}`;
+        }
+        if (제품선택기본.length > 25) {
+          제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
+        }
 
         if (사이즈목록.length === 0) {
           const 품절 = 품절조합.includes(color);
