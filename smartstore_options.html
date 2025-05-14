@@ -345,6 +345,7 @@ function downloadSingleProductExcel() {
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
 
   const data = [];
+
   색상목록.forEach(color => {
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
@@ -358,10 +359,12 @@ function downloadSingleProductExcel() {
       });
     } else {
       사이즈목록.forEach(size => {
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+        const 품절 =
+          품절조합.includes(color) ||
+          품절조합.includes(size) ||
+          품절조합.includes(`${color}-${size}`);
         data.push({
-          제품선택: 상품명,
-          색상: color,
+          제품선택: `${상품명} / ${color}`,
           사이즈: size,
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
@@ -372,13 +375,19 @@ function downloadSingleProductExcel() {
     }
   });
 
+  // 색상 열 제거 조건: 사이즈가 있을 때만 제거
+  const hasSize = data.some(row => row.사이즈);
+  if (hasSize) {
+    data.forEach(row => delete row.색상);
+  }
+
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
 }
-    
+  
 // 단품등록용 전체 엑셀 ZIP 다운로드
 function downloadSingleProductExcelAll() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -397,6 +406,7 @@ function downloadSingleProductExcelAll() {
     const 대표상품명 = 대표["1번 상품명"] || 대표.상품명;
 
     const data = [];
+
     색상목록.forEach(color => {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
@@ -410,10 +420,12 @@ function downloadSingleProductExcelAll() {
         });
       } else {
         사이즈목록.forEach(size => {
-          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+          const 품절 =
+            품절조합.includes(color) ||
+            품절조합.includes(size) ||
+            품절조합.includes(`${color}-${size}`);
           data.push({
-            제품선택: 대표상품명,
-            색상: color,
+            제품선택: `${대표상품명} / ${color}`,
             사이즈: size,
             옵션가: 0,
             재고수량: 품절 ? 0 : 99999,
@@ -425,6 +437,11 @@ function downloadSingleProductExcelAll() {
     });
 
     if (data.length > 0) {
+      const hasSize = data.some(row => row.사이즈);
+      if (hasSize) {
+        data.forEach(row => delete row.색상);
+      }
+
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
