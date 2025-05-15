@@ -136,7 +136,7 @@ function downloadRepresentative() {
     const is대표 = item === 대표;
 
     const 상품이름 = is대표
-      ? (item["1번 상품명"]
+      ? (item["1번 상품명"] && item["1번 상품명"] !== item.상품명
           ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
           : item.상품명)
       : item.상품명;
@@ -147,12 +147,18 @@ function downloadRepresentative() {
     const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
     색상배열.forEach(color => {
-      let 제품선택기본 = `${순번}) ${상품이름} / ${color.trim()}`;
+      let 제품선택기본 = color
+        ? `${순번}) ${상품이름} / ${color.trim()}`
+        : `${순번}) ${상품이름}`;
       if (제품선택기본.length > 25) {
-        제품선택기본 = `${순번}) ${상품이름}/${color.trim()}`;
+        제품선택기본 = color
+          ? `${순번}) ${상품이름}/${color.trim()}`
+          : `${순번}) ${상품이름}`;
       }
       if (제품선택기본.length > 25) {
-        제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
+        제품선택기본 = color
+          ? `${순번})${상품이름}/${color.trim()}`
+          : `${순번})${상품이름}`;
       }
 
       if (사이즈목록.length === 0) {
@@ -221,7 +227,7 @@ function generateZip() {
       const is대표 = item === targetItem;
 
       const 상품이름 = is대표
-        ? (item["1번 상품명"]
+        ? (item["1번 상품명"] && item["1번 상품명"] !== item.상품명
             ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
             : item.상품명)
         : item.상품명;
@@ -232,12 +238,18 @@ function generateZip() {
       const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
       색상배열.forEach(color => {
-        let 제품선택기본 = `${순번}) ${상품이름} / ${color.trim()}`;
+        let 제품선택기본 = color
+          ? `${순번}) ${상품이름} / ${color.trim()}`
+          : `${순번}) ${상품이름}`;
         if (제품선택기본.length > 25) {
-          제품선택기본 = `${순번}) ${상품이름}/${color.trim()}`;
+          제품선택기본 = color
+            ? `${순번}) ${상품이름}/${color.trim()}`
+            : `${순번}) ${상품이름}`;
         }
         if (제품선택기본.length > 25) {
-          제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
+          제품선택기본 = color
+            ? `${순번})${상품이름}/${color.trim()}`
+            : `${순번})${상품이름}`;
         }
 
         if (사이즈목록.length === 0) {
