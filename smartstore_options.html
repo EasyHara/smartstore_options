@@ -147,16 +147,18 @@ function downloadRepresentative() {
     const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
     색상배열.forEach(color => {
-      let 제품선택기본 = color
+      const hasColor = color && color.trim();
+      let 제품선택기본 = hasColor
         ? `${순번}) ${상품이름} / ${color.trim()}`
         : `${순번}) ${상품이름}`;
+
       if (제품선택기본.length > 25) {
-        제품선택기본 = color
+        제품선택기본 = hasColor
           ? `${순번}) ${상품이름}/${color.trim()}`
           : `${순번}) ${상품이름}`;
       }
       if (제품선택기본.length > 25) {
-        제품선택기본 = color
+        제품선택기본 = hasColor
           ? `${순번})${상품이름}/${color.trim()}`
           : `${순번})${상품이름}`;
       }
@@ -238,16 +240,18 @@ function generateZip() {
       const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
       색상배열.forEach(color => {
-        let 제품선택기본 = color
+        const hasColor = color && color.trim();
+        let 제품선택기본 = hasColor
           ? `${순번}) ${상품이름} / ${color.trim()}`
           : `${순번}) ${상품이름}`;
+
         if (제품선택기본.length > 25) {
-          제품선택기본 = color
+          제품선택기본 = hasColor
             ? `${순번}) ${상품이름}/${color.trim()}`
             : `${순번}) ${상품이름}`;
         }
         if (제품선택기본.length > 25) {
-          제품선택기본 = color
+          제품선택기본 = hasColor
             ? `${순번})${상품이름}/${color.trim()}`
             : `${순번})${상품이름}`;
         }
