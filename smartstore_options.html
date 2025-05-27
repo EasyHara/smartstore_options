@@ -148,25 +148,21 @@ function downloadRepresentative() {
 
     색상배열.forEach(color => {
       const hasColor = color && color.trim();
-      let 제품선택기본 = hasColor
-        ? `${순번}) ${상품이름} / ${color.trim()}`
-        : `${순번}) ${상품이름}`;
+      let 제품선택기본 = `${순번}) ${상품이름}`;
+      let 색상열 = "";
 
-      if (제품선택기본.length > 25) {
-        제품선택기본 = hasColor
-          ? `${순번}) ${상품이름}/${color.trim()}`
-          : `${순번}) ${상품이름}`;
-      }
-      if (제품선택기본.length > 25) {
-        제품선택기본 = hasColor
-          ? `${순번})${상품이름}/${color.trim()}`
-          : `${순번})${상품이름}`;
+      if (사이즈목록.length === 0 && hasColor) {
+        색상열 = color.trim();
+      } else if (hasColor) {
+        제품선택기본 += ` / ${color.trim()}`;
+        if (제품선택기본.length > 25) 제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
       }
 
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
         data.push({
           제품선택: 제품선택기본,
+          색상: 색상열,
           옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
@@ -194,10 +190,11 @@ function downloadRepresentative() {
   });
 
   const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
-  if (!hasAnySize) data.forEach(row => delete row.사이즈);
-  data.forEach(row => delete row.색상);
-
-  if (data.length === 0) return alert("출력할 데이터가 없습니다.");
+  if (!hasAnySize) {
+    // 사이즈 없으면 색상 열 유지
+  } else {
+    data.forEach(row => delete row.색상);
+  }
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -241,25 +238,21 @@ function generateZip() {
 
       색상배열.forEach(color => {
         const hasColor = color && color.trim();
-        let 제품선택기본 = hasColor
-          ? `${순번}) ${상품이름} / ${color.trim()}`
-          : `${순번}) ${상품이름}`;
+        let 제품선택기본 = `${순번}) ${상품이름}`;
+        let 색상열 = "";
 
-        if (제품선택기본.length > 25) {
-          제품선택기본 = hasColor
-            ? `${순번}) ${상품이름}/${color.trim()}`
-            : `${순번}) ${상품이름}`;
-        }
-        if (제품선택기본.length > 25) {
-          제품선택기본 = hasColor
-            ? `${순번})${상품이름}/${color.trim()}`
-            : `${순번})${상품이름}`;
+        if (사이즈목록.length === 0 && hasColor) {
+          색상열 = color.trim();
+        } else if (hasColor) {
+          제품선택기본 += ` / ${color.trim()}`;
+          if (제품선택기본.length > 25) 제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
         }
 
         if (사이즈목록.length === 0) {
           const 품절 = 품절조합.includes(color);
           data.push({
             제품선택: 제품선택기본,
+            색상: 색상열,
             옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
@@ -287,8 +280,11 @@ function generateZip() {
     });
 
     const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
-    if (!hasAnySize) data.forEach(row => delete row.사이즈);
-    data.forEach(row => delete row.색상);
+    if (!hasAnySize) {
+      // 색상 열 유지
+    } else {
+      data.forEach(row => delete row.색상);
+    }
 
     if (data.length > 0) {
       const ws = XLSX.utils.json_to_sheet(data);
