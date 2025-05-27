@@ -24,10 +24,18 @@
   <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
     ※ 사이즈 입력 안내: <br>
     - <strong>~</strong> 는 5단위 간격 자동 생성 (예: <code>230~240</code> → <code>230, 235, 240</code>)<br>
-    - <strong>,</strong> 와 <strong>/</strong> 는 개별 사이즈 구분자로 사용 (예: <code>230,235/245</code>)
+    - <strong>,</strong> 와 <strong>/</strong> 는 개별 사이즈 구분자로 사용 (예: <code>230,235/245</code>)<br>
+    - <strong>,</strong> 사이즈 열을 공란으로 저장시 '색상'열 별도 추가하여 다운로드 가능
   </p>
   <input type="file" id="inputFile" accept=".xls,.xlsx">
   <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+  <!-- 옵션 선택 라디오 버튼 추가 -->
+<p style="font-size: 14px; color: #555; margin-bottom: 10px;">
+  옵션 노출 방식:
+  <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두노출</label>
+  <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
+  <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
+</p>
   <br>
   <table id="inputTable">
     <thead>
@@ -123,6 +131,7 @@ function downloadRepresentative() {
 
   const 대표판매가 = 대표.판매가;
   const 대표상품명 = 대표.상품명;
+  const mode = getOptionDisplayMode();
 
   const items = rows
     .filter(r => !r.제외)
@@ -147,22 +156,11 @@ function downloadRepresentative() {
     const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
     색상배열.forEach(color => {
-      const hasColor = color && color.trim();
-      let 제품선택기본 = `${순번}) ${상품이름}`;
-      let 색상열 = "";
-
-      if (사이즈목록.length === 0 && hasColor) {
-        색상열 = color.trim();
-      } else if (hasColor) {
-        제품선택기본 += ` / ${color.trim()}`;
-        if (제품선택기본.length > 25) 제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
-      }
-
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
+        const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
         data.push({
-          제품선택: 제품선택기본,
-          색상: 색상열,
+          ...base,
           옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
@@ -174,9 +172,9 @@ function downloadRepresentative() {
             품절조합.includes(color) ||
             품절조합.includes(size) ||
             품절조합.includes(`${color}-${size}`);
+          const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
           data.push({
-            제품선택: 제품선택기본,
-            사이즈: size,
+            ...base,
             옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
@@ -189,13 +187,6 @@ function downloadRepresentative() {
     index++;
   });
 
-  const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
-  if (!hasAnySize) {
-    // 사이즈 없으면 색상 열 유지
-  } else {
-    data.forEach(row => delete row.색상);
-  }
-
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
@@ -207,6 +198,7 @@ function downloadRepresentative() {
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
+  const mode = getOptionDisplayMode();
 
   const zip = new JSZip();
 
@@ -237,22 +229,11 @@ function generateZip() {
       const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
       색상배열.forEach(color => {
-        const hasColor = color && color.trim();
-        let 제품선택기본 = `${순번}) ${상품이름}`;
-        let 색상열 = "";
-
-        if (사이즈목록.length === 0 && hasColor) {
-          색상열 = color.trim();
-        } else if (hasColor) {
-          제품선택기본 += ` / ${color.trim()}`;
-          if (제품선택기본.length > 25) 제품선택기본 = `${순번})${상품이름}/${color.trim()}`;
-        }
-
         if (사이즈목록.length === 0) {
           const 품절 = 품절조합.includes(color);
+          const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
           data.push({
-            제품선택: 제품선택기본,
-            색상: 색상열,
+            ...base,
             옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
@@ -264,9 +245,9 @@ function generateZip() {
               품절조합.includes(color) ||
               품절조합.includes(size) ||
               품절조합.includes(`${color}-${size}`);
+            const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
             data.push({
-              제품선택: 제품선택기본,
-              사이즈: size,
+              ...base,
               옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
               재고수량: 품절 ? 0 : 99999,
               관리코드: item.상품명,
@@ -278,6 +259,20 @@ function generateZip() {
 
       index++;
     });
+
+    if (data.length > 0) {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+      zip.file(`${대표상품명}.xls`, wbout);
+    }
+  });
+
+  zip.generateAsync({ type: "blob" }).then(content => {
+    saveAs(content, "옵션_일괄다운로드.zip");
+  });
+}
 
     const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
     if (!hasAnySize) {
