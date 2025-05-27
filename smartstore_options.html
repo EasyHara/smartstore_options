@@ -461,6 +461,31 @@ function parseOptions(input) {
   if (!input) return [];
   return input.split(/[,/]/).map(s => s.trim()).filter(Boolean);
 }
+// 오류수정용 코드
+    function getOptionDisplayMode() {
+  const selected = document.querySelector('input[name="optionDisplay"]:checked');
+  return selected ? selected.value : "both";
+}
+// 오류수정용 코드
+function applyOptionMode(제품명, 색상, 사이즈, 상품명, 순번) {
+  const mode = getOptionDisplayMode();
+  let 제품선택값 = `${순번}) ${제품명}`;
+  let 색상열 = 색상 || "";
+  let 사이즈열 = 사이즈 || "";
+
+  if (mode === "colorOnly") {
+    return { 제품선택: 제품선택값, 색상: 색상열 };
+  } else if (mode === "sizeOnly") {
+    제품선택값 += 사이즈 ? ` / ${사이즈}` : "";
+    return { 제품선택: 제품선택값, 사이즈: 사이즈열 };
+  } else {
+    제품선택값 += 색상 ? ` / ${색상}` : "";
+    return 사이즈
+      ? { 제품선택: 제품선택값, 사이즈: 사이즈열 }
+      : { 제품선택: 제품선택값 };
+  }
+}
+
   </script>
 </body>
 </html>
