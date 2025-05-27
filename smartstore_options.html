@@ -25,7 +25,6 @@
     ※ 사이즈 입력 안내: <br>
     - <strong>~</strong> 는 5단위 간격 자동 생성 (예: <code>230~240</code> → <code>230, 235, 240</code>)<br>
     - <strong>,</strong> 와 <strong>/</strong> 는 개별 사이즈 구분자로 사용 (예: <code>230,235/245</code>)<br>
-    - <strong>,</strong> 사이즈 열을 공란으로 저장시 '색상'열 별도 추가하여 다운로드 가능
   </p>
   <input type="file" id="inputFile" accept=".xls,.xlsx">
   <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
@@ -259,27 +258,6 @@ function generateZip() {
 
       index++;
     });
-
-    if (data.length > 0) {
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`${대표상품명}.xls`, wbout);
-    }
-  });
-
-  zip.generateAsync({ type: "blob" }).then(content => {
-    saveAs(content, "옵션_일괄다운로드.zip");
-  });
-}
-
-    const hasAnySize = data.some(row => row.사이즈 && row.사이즈.trim() !== "");
-    if (!hasAnySize) {
-      // 색상 열 유지
-    } else {
-      data.forEach(row => delete row.색상);
-    }
 
     if (data.length > 0) {
       const ws = XLSX.utils.json_to_sheet(data);
