@@ -407,7 +407,6 @@ function downloadSingleProductExcelAll() {
     const 대표상품명 = 대표["1번 상품명"] || 대표.상품명;
 
     const data = [];
-
     const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
     색상배열.forEach(color => {
@@ -422,7 +421,7 @@ function downloadSingleProductExcelAll() {
         });
       } else {
         사이즈목록.forEach(size => {
-          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조조합.includes(`${color}-${size}`);
+          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
           data.push({
             제품선택: 대표상품명,
             사이즈: size,
@@ -438,7 +437,7 @@ function downloadSingleProductExcelAll() {
     // 열 정리
     const hasSize = data.some(row => row.사이즈);
     if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-    if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
+    if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
     if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
 
     const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
@@ -453,6 +452,7 @@ function downloadSingleProductExcelAll() {
     saveAs(content, "단품등록_전체다운로드.zip");
   });
 }
+
 
 // 색상/사이즈 분리 함수
 function parseOptions(input) {
