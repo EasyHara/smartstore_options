@@ -330,96 +330,44 @@ function downloadSingleProductExcel() {
   const 사이즈목록 = expandSizes(대표.사이즈);
   const 품절조합 = (대표.품절된조합 || '').split(/[,/\n]/).map(s => s.trim());
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
+  const mode = getOptionDisplayMode();
 
-  const mode = getOptionDisplayMode();  // 옵션 노출 방식
   const data = [];
 
   색상목록.forEach(color => {
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
-
       if (mode === "colorOnly") {
-        data.push({
-          제품선택: 상품명,
-          색상: color,
-          옵션가: 0,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
-          사용여부: "Y"
-        });
+        data.push({ 제품선택: 상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
       } else if (mode === "sizeOnly") {
-        data.push({
-          제품선택: 상품명,
-          옵션가: 0,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
-          사용여부: "Y"
-        });
+        data.push({ 제품선택: 상품명, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
       } else {
-        data.push({
-          제품선택: `${상품명} / ${color}`,
-          옵션가: 0,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
-          사용여부: "Y"
-        });
+        data.push({ 제품선택: `${상품명} / ${color}`, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
       }
     } else {
       사이즈목록.forEach(size => {
-        const 품절 =
-          품절조합.includes(color) ||
-          품절조합.includes(size) ||
-          품절조합.includes(`${color}-${size}`);
-
+        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
         if (mode === "colorOnly") {
-          data.push({
-            제품선택: 상품명,
-            색상: color,
-            옵션가: 0,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
-            사용여부: "Y"
-          });
+          data.push({ 제품선택: 상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
         } else if (mode === "sizeOnly") {
-          data.push({
-            제품선택: `${상품명} / ${size}`,
-            사이즈: size,
-            옵션가: 0,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
-            사용여부: "Y"
-          });
+          data.push({ 제품선택: `${상품명} / ${size}`, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
         } else {
-          data.push({
-            제품선택: `${상품명} / ${color}`,
-            사이즈: size,
-            옵션가: 0,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
-            사용여부: "Y"
-          });
+          data.push({ 제품선택: `${상품명} / ${color}`, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
         }
       });
     }
   });
 
-  // 불필요한 열 제거
-  const hasSize = data.some(row => row.사이즈);
-  if (mode !== "colorOnly") {
-    data.forEach(row => delete row.색상);
-  }
-  if (mode === "sizeOnly") {
-    data.forEach(row => delete row.색상);
-  }
-  if (!hasSize && mode !== "sizeOnly") {
-    data.forEach(row => delete row.사이즈);
-  }
+  if (mode !== "colorOnly") data.forEach(row => delete row.색상);
+  if (mode === "sizeOnly") data.forEach(row => delete row.색상);
+  if (!data.some(r => r.사이즈) && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
 
+  const safeFileName = (대표.상품명 || "단품등록").replace(/[\\/:*?"<>|]/g, "").trim();
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
-  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
+  const wbout = XLSX.write(wb, { bookType: 'biff8', type: 'array' });
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
 }
 
 // 단품등록용 전체 엑셀 ZIP 다운로드
@@ -428,7 +376,7 @@ function downloadSingleProductExcelAll() {
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
   const zip = new JSZip();
-  const mode = getOptionDisplayMode();  // 색상/사이즈 출력 방식
+  const mode = getOptionDisplayMode();
   const 그룹들 = [...new Set(rows.map(r => r.상품명))];
 
   그룹들.forEach(상품명 => {
@@ -444,91 +392,37 @@ function downloadSingleProductExcelAll() {
     색상목록.forEach(color => {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
-
         if (mode === "colorOnly") {
-          data.push({
-            제품선택: 대표상품명,
-            색상: color,
-            옵션가: 0,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
-            사용여부: "Y"
-          });
+          data.push({ 제품선택: 대표상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
         } else if (mode === "sizeOnly") {
-          data.push({
-            제품선택: 대표상품명,
-            옵션가: 0,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
-            사용여부: "Y"
-          });
+          data.push({ 제품선택: 대표상품명, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
         } else {
-          data.push({
-            제품선택: `${대표상품명} / ${color}`,
-            옵션가: 0,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
-            사용여부: "Y"
-          });
+          data.push({ 제품선택: `${대표상품명} / ${color}`, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
         }
       } else {
         사이즈목록.forEach(size => {
-          const 품절 =
-            품절조합.includes(color) ||
-            품절조합.includes(size) ||
-            품절조합.includes(`${color}-${size}`);
-
+          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
           if (mode === "colorOnly") {
-            data.push({
-              제품선택: 대표상품명,
-              색상: color,
-              옵션가: 0,
-              재고수량: 품절 ? 0 : 99999,
-              관리코드: 대표.상품명,
-              사용여부: "Y"
-            });
+            data.push({ 제품선택: 대표상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
           } else if (mode === "sizeOnly") {
-            data.push({
-              제품선택: `${대표상품명} / ${size}`,
-              사이즈: size,
-              옵션가: 0,
-              재고수량: 품절 ? 0 : 99999,
-              관리코드: 대표.상품명,
-              사용여부: "Y"
-            });
+            data.push({ 제품선택: `${대표상품명} / ${size}`, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
           } else {
-            data.push({
-              제품선택: `${대표상품명} / ${color}`,
-              사이즈: size,
-              옵션가: 0,
-              재고수량: 품절 ? 0 : 99999,
-              관리코드: 대표.상품명,
-              사용여부: "Y"
-            });
+            data.push({ 제품선택: `${대표상품명} / ${color}`, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
           }
         });
       }
     });
 
-    if (data.length > 0) {
-      // 열 정리
-      const hasSize = data.some(row => row.사이즈);
-      if (mode !== "colorOnly") {
-        data.forEach(row => delete row.색상);
-      }
-      if (mode === "sizeOnly") {
-        data.forEach(row => delete row.색상);
-      }
-      if (!hasSize && mode !== "sizeOnly") {
-        data.forEach(row => delete row.사이즈);
-      }
+    if (mode !== "colorOnly") data.forEach(row => delete row.색상);
+    if (mode === "sizeOnly") data.forEach(row => delete row.색상);
+    if (!data.some(r => r.사이즈) && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
 
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
-      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`단품등록_${대표.상품명}.xls`, wbout);
-    }
+    const safeFileName = (대표.상품명 || "단품등록").replace(/[\\/:*?"<>|]/g, "").trim();
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
+    const wbout = XLSX.write(wb, { bookType: 'biff8', type: 'array' });
+    zip.file(`단품등록_${safeFileName}.xls`, wbout);
   });
 
   zip.generateAsync({ type: "blob" }).then(content => {
