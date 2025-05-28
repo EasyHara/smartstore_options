@@ -19,88 +19,84 @@
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>📃 스마트스토어 옵션 자동 생성기</h1>
-  <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-    ※ 사이즈 입력 안내: <br>
-    - <strong>~</strong> 는 5단위 간격 자동 생성 (예: <code>230~240</code> → <code>230, 235, 240</code>)<br>
-    - <strong>,</strong> 와 <strong>/</strong> 는 개별 사이즈 구분자로 사용 (예: <code>230,235/245</code>)<br>
-  </p>
-  <input type="file" id="inputFile" accept=".xls,.xlsx">
-  <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-  <!-- 옵션 선택 라디오 버튼 추가 -->
-<p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-  옵션 노출 방식:
-  <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두노출</label>
-  <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
-  <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
-</p>
-  <br>
-  <table id="inputTable">
-    <thead>
-      <tr>
-        <th>대표</th><th>상품명</th><th>판매가</th><th>색상</th><th>사이즈</th>
-        <th>1번 상품명</th><th>품절된 조합</th><th>제외</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <button onclick="addRow()">+ 행 추가</button>
-  <button onclick="clearTable()">초기화</button>
-  <br>
-  <button onclick="downloadRepresentative()">대표상품 엑셀 다운로드</button>
-  <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
-  <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
-  <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
-  <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
-</div>
+  <div class="container">
+    <h1>📃 스마트스토어 옵션 자동 생성기</h1>
 
-  <script>
-    document.getElementById("inputFile").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-const sheetName = workbook.SheetNames.find(name =>
-  name.includes("상품") || name.includes("옵션")
-) || workbook.SheetNames[0];
+    <input type="file" id="inputFile" accept=".xls,.xlsx">
+    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
 
-const sheet = workbook.Sheets[sheetName];
-if (!sheet) return alert("엑셀 시트를 찾을 수 없습니다.");
+    <p>옵션 노출 방식:
+      <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
+      <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
+      <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
+    </p>
 
-        if (!sheet) return alert("상품옵션 시트를 찾을 수 없습니다.");
-        const json = XLSX.utils.sheet_to_json(sheet);
-        clearTable();
-        json.forEach(row => addRow({
-          상품명: row["상품명"], 판매가: row["판매가"], 색상: row["색상"], 사이즈: row["사이즈"],
-          ["1번 상품명"]: row["1번 상품명"], 품절된조합: row["품절된 조합"] || '', 제외: row["제외"] === 'Y' || row["제외"] === true
-        }));
-      };
-      reader.readAsArrayBuffer(file);
-    });
+    <table id="inputTable">
+      <thead>
+        <tr>
+          <th>대표</th><th>상품명</th><th>판매가</th><th>색상</th><th>사이즈</th>
+          <th>1번 상품명</th><th>품절된 조합</th><th>제외</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button onclick="addRow()">+ 행 추가</button>
+    <button onclick="clearTable()">초기화</button>
+    <br><br>
+    <button onclick="downloadRepresentative()">대표상품 엑셀 다운로드</button>
+    <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
+    <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
+    <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
+    <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
+  </div>
 
-    function addRow(data = {}) {
-      const tbody = document.querySelector("#inputTable tbody");
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td><input type="radio" name="대표"></td>
-        <td><input value="${data.상품명 || ''}"></td>
-        <td><input value="${data.판매가 || ''}" type="number"></td>
-        <td><input value="${data.색상 || ''}"></td>
-        <td><input value="${data.사이즈 || ''}"></td>
-        <td><input value="${data["1번 상품명"] || ''}"></td>
-        <td><input value="${data.품절된조합 || ''}"></td>
-        <td><input type="checkbox" ${data.제외 ? 'checked' : ''}></td>
-      `;
-      tbody.appendChild(row);
-    }
+<script>
+document.getElementById("inputFile").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const data = new Uint8Array(evt.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
 
-    function clearTable() {
-      document.querySelector("#inputTable tbody").innerHTML = '';
-    }
+    const sheetName = workbook.SheetNames.find(name =>
+      name.includes("상품") || name.includes("옵션")
+    ) || workbook.SheetNames[0];
 
-    function getDataFromTable() {
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) return alert("엑셀 시트를 찾을 수 없습니다.");
+
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    clearTable();
+    json.forEach(row => addRow({
+      상품명: row["상품명"], 판매가: row["판매가"], 색상: row["색상"], 사이즈: row["사이즈"],
+      ["1번 상품명"]: row["1번 상품명"], 품절된조합: row["품절된 조합"] || '',
+      제외: row["제외"] === 'Y' || row["제외"] === true
+    }));
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function addRow(data = {}) {
+  const tbody = document.querySelector("#inputTable tbody");
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td><input type="radio" name="대표"></td>
+    <td><input value="${data.상품명 || ''}"></td>
+    <td><input value="${data.판매가 || ''}" type="number"></td>
+    <td><input value="${data.색상 || ''}"></td>
+    <td><input value="${data.사이즈 || ''}"></td>
+    <td><input value="${data["1번 상품명"] || ''}"></td>
+    <td><input value="${data.품절된조합 || ''}"></td>
+    <td><input type="checkbox" ${data.제외 ? 'checked' : ''}></td>
+  `;
+  tbody.appendChild(row);
+}
+
+function clearTable() {
+  document.querySelector("#inputTable tbody").innerHTML = '';
+}
+
+function getDataFromTable() {
   const rows = document.querySelectorAll("#inputTable tbody tr");
   return Array.from(rows).map(row => {
     const cells = row.querySelectorAll("input");
@@ -117,15 +113,14 @@ if (!sheet) return alert("엑셀 시트를 찾을 수 없습니다.");
   });
 }
 
-    function downloadTemplate() {
-      const headers = ["상품명","판매가","색상","사이즈","1번 상품명","품절된 조합","제외"];
-      const ws = XLSX.utils.aoa_to_sheet([headers]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스스_옵션양식.xlsx`);
-    }
-
+function downloadTemplate() {
+  const headers = ["상품명","판매가","색상","사이즈","1번 상품명","품절된 조합","제외"];
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
+  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스스_옵션양식.xls`);
+}
 // 대표상품 기준 엑셀 다운로드 (확장 사이즈 적용)
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
