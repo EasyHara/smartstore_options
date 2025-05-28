@@ -62,7 +62,13 @@
       reader.onload = function(evt) {
         const data = new Uint8Array(evt.target.result);
         const workbook = XLSX.read(data, {type: 'array'});
-        const sheet = workbook.Sheets["상품옵션"] || workbook.Sheets[workbook.SheetNames[0]];
+const sheetName = workbook.SheetNames.find(name =>
+  name.includes("상품") || name.includes("옵션")
+) || workbook.SheetNames[0];
+
+const sheet = workbook.Sheets[sheetName];
+if (!sheet) return alert("엑셀 시트를 찾을 수 없습니다.");
+
         if (!sheet) return alert("상품옵션 시트를 찾을 수 없습니다.");
         const json = XLSX.utils.sheet_to_json(sheet);
         clearTable();
