@@ -361,29 +361,36 @@ function downloadSingleProductExcel() {
   색상목록.forEach(color => {
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
-
-      if (mode === "colorOnly") {
-        data.push({ 제품선택: 상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-      } else if (mode === "sizeOnly") {
-        data.push({ 사이즈: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-      } else {
-        data.push({ 제품선택: `${상품명} / ${color}`, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-      }
-
+      data.push({
+        제품선택: 상품명,
+        옵션가: 0,
+        재고수량: 품절 ? 0 : 99999,
+        관리코드: 대표.상품명,
+        사용여부: "Y"
+      });
     } else {
       사이즈목록.forEach(size => {
         const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-
-        if (mode === "colorOnly") {
-          data.push({ 제품선택: 상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-        } else if (mode === "sizeOnly") {
-          data.push({ 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-        } else {
-          data.push({ 제품선택: `${상품명} / ${color}`, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-        }
+        const row = {
+          제품선택: 상품명,
+          사이즈: size,
+          옵션가: 0,
+          재고수량: 품절 ? 0 : 99999,
+          관리코드: 대표.상품명,
+          사용여부: "Y"
+        };
+        data.push(row);
       });
     }
   });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
+  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+  const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
+}
 
   // 열 정리
   const hasSize = data.some(row => row.사이즈);
@@ -403,7 +410,6 @@ function downloadSingleProductExcelAll() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
-  const mode = getOptionDisplayMode();
   const zip = new JSZip();
   const 상품그룹 = [...new Set(rows.map(r => r.상품명))];
 
@@ -420,29 +426,41 @@ function downloadSingleProductExcelAll() {
     색상목록.forEach(color => {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
-
-        if (mode === "colorOnly") {
-          data.push({ 제품선택: 대표상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-        } else if (mode === "sizeOnly") {
-          data.push({ 사이즈: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-        } else {
-          data.push({ 제품선택: `${대표상품명} / ${color}`, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-        }
-
+        data.push({
+          제품선택: 대표상품명,
+          옵션가: 0,
+          재고수량: 품절 ? 0 : 99999,
+          관리코드: 대표.상품명,
+          사용여부: "Y"
+        });
       } else {
         사이즈목록.forEach(size => {
           const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-
-          if (mode === "colorOnly") {
-            data.push({ 제품선택: 대표상품명, 색상: color, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-          } else if (mode === "sizeOnly") {
-            data.push({ 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-          } else {
-            data.push({ 제품선택: `${대표상품명} / ${color}`, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" });
-          }
+          data.push({
+            제품선택: 대표상품명,
+            사이즈: size,
+            옵션가: 0,
+            재고수량: 품절 ? 0 : 99999,
+            관리코드: 대표.상품명,
+            사용여부: "Y"
+          });
         });
       }
     });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
+    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+    const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
+    zip.file(`단품등록_${safeFileName}.xls`, wbout);
+  });
+
+  zip.generateAsync({ type: "blob" }).then(content => {
+    saveAs(content, "단품등록_전체다운로드.zip");
+  });
+}
+
 
     // 열 정리
     const hasSize = data.some(row => row.사이즈);
