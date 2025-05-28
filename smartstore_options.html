@@ -473,24 +473,25 @@ function getOptionDisplayMode() {
   return selected ? selected.value : "both";
 } 
 // 옵션 구성 방식 적용 함수
-function applyOptionMode(제품명, 색상, 사이즈, 상품명, 순번) {
-  const mode = getOptionDisplayMode();
-  let 제품선택값 = `${순번}) ${제품명}`;
-  let 색상열 = 색상 || "";
-  let 사이즈열 = 사이즈 || "";
+    function applyOptionMode(제품명, 색상, 사이즈, 상품명, 순번) {
+      const mode = getOptionDisplayMode();
+      let 제품선택값 = `${순번}) ${제품명}`;
+      let 색상열 = 색상 || "";
+      let 사이즈열 = 사이즈 || "";
 
-  if (mode === "colorOnly") {
-    return { 제품선택: 제품선택값, 색상: 색상열 };
-  } else if (mode === "sizeOnly") {
-    제품선택값 += 사이즈 ? ` / ${사이즈}` : "";
-    return { 제품선택: 제품선택값, 사이즈: 사이즈열 };
-  } else {
-    제품선택값 += 색상 ? ` / ${색상}` : "";
-    return 사이즈
-      ? { 제품선택: 제품선택값, 사이즈: 사이즈열 }
-      : { 제품선택: 제품선택값 };
-  }
-}
+      if (mode === "colorOnly") {
+        return { 제품선택: 제품선택값, 색상: 색상열 };
+      } else if (mode === "sizeOnly") {
+        return 사이즈
+          ? { 제품선택: 제품선택값, 사이즈: 사이즈열 }
+          : { 제품선택: 제품선택값 };
+      } else {
+        제품선택값 += 색상 ? ` / ${색상}` : "";
+        return 사이즈
+          ? { 제품선택: 제품선택값, 사이즈: 사이즈열 }
+          : { 제품선택: 제품선택값 };
+      }
+    }
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
 
