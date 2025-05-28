@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>스마트스토어 옵션 자동 생성기</title>
-  <!-- ✅ SheetJS 공식 CDN (xls 저장 완전 지원) -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
+  <!-- ✅ .xls 완전 지원 UMD CDN -->
+  <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: 'Pretendard', sans-serif; padding: 20px; background: #f5f6fa; color: #333; }
+    body { font-family: sans-serif; padding: 20px; background: #f5f6fa; color: #333; }
     .container { max-width: 100%; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow-x: auto; }
-    h1 { font-size: 24px; margin-bottom: 16px; }
-    table { width: 100%; min-width: 1200px; border-collapse: collapse; margin: 10px 0; table-layout: fixed; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 14px; word-break: break-word; }
+    table { width: 100%; min-width: 1000px; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 14px; }
     th { background-color: #f0f0f0; }
     button, input[type="file"], input[type="text"] { margin: 4px; padding: 6px 12px; font-size: 14px; }
     input[type="checkbox"] { margin-right: 4px; }
@@ -21,39 +19,28 @@
 </head>
 <body>
 <div class="container">
-  <h1>📃 스마트스토어 옵션 자동 생성기</h1>
-  <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-    ※ 사이즈 입력 안내:<br>
-    - <strong>~</strong> 는 5단위 간격 자동 생성 (예: <code>230~240</code> → <code>230, 235, 240</code>)<br>
-    - <strong>,</strong> 와 <strong>/</strong> 는 개별 사이즈 구분자로 사용 (예: <code>230,235/245</code>)<br>
-  </p>
+  <h2>🧾 스마트스토어 옵션 자동 생성기 (.xls 대응)</h2>
 
-  <!-- 파일 업로드 + 템플릿 다운로드 -->
   <input type="file" id="inputFile" accept=".xls,.xlsx">
-  <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+  <button onclick="downloadTemplate()">엑셀 양식 다운로드</button><br>
 
-  <!-- 옵션 노출 모드 -->
-  <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-    옵션 노출 방식:
-    <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두노출</label>
-    <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
-    <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
-  </p>
+  <label><input type="radio" name="optionDisplay" value="both" checked> 색상+사이즈</label>
+  <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
+  <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label><br>
 
-  <!-- 테이블 -->
   <table id="inputTable">
     <thead>
       <tr>
         <th>대표</th><th>상품명</th><th>판매가</th><th>색상</th><th>사이즈</th>
-        <th>1번 상품명</th><th>품절된 조합</th><th>제외</th>
+        <th>1번 상품명</th><th>품절 조합</th><th>제외</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <!-- 버튼들 -->
   <button onclick="addRow()">+ 행 추가</button>
-  <button onclick="clearTable()">초기화</button><br>
+  <button onclick="clearTable()">초기화</button><br><br>
+
   <button onclick="downloadRepresentative()">대표상품 엑셀 다운로드</button>
   <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
   <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
@@ -61,7 +48,57 @@
   <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
 </div>
 
-  <script>
+<script>
+  // 👉 핵심 유틸 함수 예시 (전체는 이전에 사용한 함수 그대로 삽입하세요)
+  function addRow() {
+    const tbody = document.querySelector("#inputTable tbody");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="radio" name="대표"></td>
+      <td><input></td><td><input type="number"></td><td><input></td><td><input></td>
+      <td><input></td><td><input></td><td><input type="checkbox"></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function clearTable() {
+    document.querySelector("#inputTable tbody").innerHTML = '';
+  }
+
+  function getDataFromTable() {
+    const rows = document.querySelectorAll("#inputTable tbody tr");
+    return Array.from(rows).map(row => {
+      const inputs = row.querySelectorAll("input");
+      return {
+        대표: inputs[0].checked,
+        상품명: inputs[1].value.trim(),
+        판매가: Number(inputs[2].value) || 0,
+        색상: inputs[3].value.trim(),
+        사이즈: inputs[4].value.trim(),
+        ["1번 상품명"]: inputs[5].value.trim(),
+        품절조합: inputs[6].value.trim(),
+        제외: inputs[7].checked
+      };
+    });
+  }
+
+  function parseOptions(input) {
+    return input.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  }
+
+  function downloadTemplate() {
+    const headers = ["상품명", "판매가", "색상", "사이즈", "1번 상품명", "품절 조합", "제외"];
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
+    const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
+    saveAs(new Blob([wbout], { type: "application/octet-stream" }), "스마트스토어_양식.xls");
+  }
+
+  function getOptionDisplayMode() {
+    return document.querySelector('input[name="optionDisplay"]:checked')?.value || "both";
+  }
+
     document.getElementById("inputFile").addEventListener("change", function(e) {
       const file = e.target.files[0];
       const reader = new FileReader();
