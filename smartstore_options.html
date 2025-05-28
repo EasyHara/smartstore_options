@@ -197,13 +197,20 @@ function downloadRepresentative() {
     index++;
   });
 
+  // 열 정리
+  const hasSize = data.some(row => row.사이즈);
+  if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
+  if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
+  if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
+
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  const safeName = (대표상품명 || "대표상품").replace(/[\\/:*?"<>|]/g, "").trim();
+  const safeName = (대표상품명 || "대표상품").replace(/[\/:*?"<>|]/g, "").trim();
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${safeName}.xls`);
 }
+
 // 일괄 엑셀 ZIP 다운로드 (확장 사이즈 적용)
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -214,7 +221,7 @@ function generateZip() {
 
   rows.forEach(대표 => {
     const 대표판매가 = 대표.판매가;
-    const 대표상품명 = (대표.상품명 || "대표상품").replace(/[\\/:*?"<>|]/g, "").trim();
+    const 대표상품명 = (대표.상품명 || "대표상품").replace(/[\/:*?"<>|]/g, "").trim();
     const items = rows
       .filter(r => !r.제외)
       .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
@@ -263,6 +270,12 @@ function generateZip() {
       index++;
     });
 
+    // 열 정리
+    const hasSize = data.some(row => row.사이즈);
+    if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
+    if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
+    if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
+
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
@@ -274,7 +287,6 @@ function generateZip() {
     saveAs(content, "옵션_일괄다운로드.zip");
   });
 }
-
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
 function downloadAddProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
