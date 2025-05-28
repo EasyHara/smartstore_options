@@ -24,11 +24,13 @@
 
     <input type="file" id="inputFile" accept=".xls,.xlsx">
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-    <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
-      ※ 사이즈 입력 안내:<br>
-      - <strong>230~240</strong>: 5단위 자동 생성 (230, 235, 240)<br>
-      - <strong>230,235/245</strong>: 쉼표 또는 슬래시로 개별 사이즈 지정<br>
-    </p>
+<div style="background: #f9fafe; border-left: 4px solid #4f80ff; padding: 12px 16px; margin-bottom: 20px; border-radius: 8px; font-size: 14px; color: #333; line-height: 1.6;">
+  <strong>사이즈 입력 방법 안내</strong><br>
+  <ul style="margin: 8px 0 0 16px; padding: 0;">
+    <li><strong>범위 입력:</strong> <code>230~240</code> → <mark>5단위 자동 생성</mark> (예: <code>230, 235, 240</code>)</li>
+    <li><strong>개별 입력:</strong> <code>230,235/245</code> → 쉼표 또는 슬래시로 <mark>사이즈 직접 지정</mark></li>
+  </ul>
+</div>
 
     <p>옵션 노출 방식:
       <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
