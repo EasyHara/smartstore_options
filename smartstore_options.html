@@ -358,28 +358,51 @@ function downloadSingleProductExcel() {
   색상목록.forEach(color => {
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
-      const row = { 제품선택: 상품명, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" };
+      let 제품선택값 = 상품명;
+
+      if (mode === "both") 제품선택값 = `${상품명} / ${color}`;
+      if (mode === "colorOnly") 제품선택값 = 상품명;
+      if (mode === "sizeOnly") 제품선택값 = 상품명;
+
+      const row = {
+        제품선택: 제품선택값,
+        옵션가: 0,
+        재고수량: 품절 ? 0 : 99999,
+        관리코드: 대표.상품명,
+        사용여부: "Y"
+      };
       if (mode === "colorOnly") row.색상 = color;
       if (mode === "sizeOnly") row.사이즈 = color;
+      if (mode === "both") row.사이즈 = 대표.사이즈;
       data.push(row);
     } else {
       사이즈목록.forEach(size => {
         const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-        const row = { 제품선택: 상품명, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" };
+        let 제품선택값 = 상품명;
+
+        if (mode === "both") 제품선택값 = `${상품명} / ${color}`;
+        if (mode === "colorOnly") 제품선택값 = 상품명;
+        if (mode === "sizeOnly") 제품선택값 = 상품명;
+
+        const row = {
+          제품선택: 제품선택값,
+          옵션가: 0,
+          재고수량: 품절 ? 0 : 99999,
+          관리코드: 대표.상품명,
+          사용여부: "Y"
+        };
         if (mode === "colorOnly") row.색상 = color;
-        if (mode === "sizeOnly") {
-          row.제품선택 = 상품명;
-          row.사이즈 = size;
-        }
+        if (mode === "sizeOnly") row.사이즈 = size;
+        if (mode === "both") row.사이즈 = size;
+
         data.push(row);
       });
     }
   });
 
-  const hasSize = data.some(row => row.사이즈);
+  // 불필요한 열 정리
   if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-  if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
-  if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
+  if (mode === "sizeOnly") data.forEach(row => delete row.색상);
 
   const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
   const ws = XLSX.utils.json_to_sheet(data);
@@ -412,33 +435,54 @@ function downloadSingleProductExcelAll() {
     색상배열.forEach(color => {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
-        data.push({
-          제품선택: 대표상품명,
+
+        let 제품선택값 = 대표상품명;
+        if (mode === "both") 제품선택값 = `${대표상품명} / ${color}`;
+        if (mode === "colorOnly") 제품선택값 = 대표상품명;
+        if (mode === "sizeOnly") 제품선택값 = 대표상품명;
+
+        const row = {
+          제품선택: 제품선택값,
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
           관리코드: 대표.상품명,
           사용여부: "Y"
-        });
+        };
+
+        if (mode === "colorOnly") row.색상 = color;
+        if (mode === "sizeOnly") row.사이즈 = color;
+        if (mode === "both") row.사이즈 = 대표.사이즈;
+
+        data.push(row);
       } else {
         사이즈목록.forEach(size => {
           const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-          data.push({
-            제품선택: 대표상품명,
-            사이즈: size,
+
+          let 제품선택값 = 대표상품명;
+          if (mode === "both") 제품선택값 = `${대표상품명} / ${color}`;
+          if (mode === "colorOnly") 제품선택값 = 대표상품명;
+          if (mode === "sizeOnly") 제품선택값 = 대표상품명;
+
+          const row = {
+            제품선택: 제품선택값,
             옵션가: 0,
             재고수량: 품절 ? 0 : 99999,
             관리코드: 대표.상품명,
             사용여부: "Y"
-          });
+          };
+
+          if (mode === "colorOnly") row.색상 = color;
+          if (mode === "sizeOnly") row.사이즈 = size;
+          if (mode === "both") row.사이즈 = size;
+
+          data.push(row);
         });
       }
     });
 
-    // 열 정리
-    const hasSize = data.some(row => row.사이즈);
+    // 불필요한 열 정리
     if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-    if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
-    if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
+    if (mode === "sizeOnly") data.forEach(row => delete row.색상);
 
     const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
     const ws = XLSX.utils.json_to_sheet(data);
@@ -452,7 +496,6 @@ function downloadSingleProductExcelAll() {
     saveAs(content, "단품등록_전체다운로드.zip");
   });
 }
-
 
 // 색상/사이즈 분리 함수
 function parseOptions(input) {
