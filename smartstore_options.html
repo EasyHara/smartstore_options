@@ -240,12 +240,11 @@ function generateZip() {
 
       const 색상목록 = parseOptions(item.색상);
       const 사이즈목록 = expandSizes(item.사이즈);
-      const 품절조합 = parseOptions(item.품절된조합);
       const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
       색상배열.forEach(color => {
         if (사이즈목록.length === 0) {
-          const 품절 = 품절조합.includes(color);
+          const 품절 = item.품절된조합.includes(color);
           const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
           data.push({
             ...base,
@@ -256,7 +255,7 @@ function generateZip() {
           });
         } else {
           사이즈목록.forEach(size => {
-            const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+            const 품절 = item.품절된조합.includes(color) || item.품절된조합.includes(size) || item.품절된조합.includes(`${color}-${size}`);
             const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
             data.push({
               ...base,
@@ -272,10 +271,9 @@ function generateZip() {
       index++;
     });
 
-    // 열 정리
     const hasSize = data.some(row => row.사이즈);
     if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-    if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
+    if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
     if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -289,14 +287,13 @@ function generateZip() {
     saveAs(content, "옵션_일괄다운로드.zip");
   });
 }
+
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
 function downloadAddProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
   const 대표 = rows.find(r => r.대표) || rows[0];
-  if (!대표) return alert("대표 상품이 없습니다.");
-
   const 대표상품명 = 대표.상품명;
   const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
 
@@ -336,8 +333,6 @@ function downloadAddProductExcel() {
     index++;
   });
 
-  if (data.length === 0) return alert("추가상품 데이터가 없습니다.");
-
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "추가상품");
@@ -345,7 +340,7 @@ function downloadAddProductExcel() {
   const safeName = (대표상품명 || "추가상품").replace(/[\\/:*?"<>|]/g, "").trim();
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_${safeName}.xls`);
 }
-  
+
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -363,41 +358,27 @@ function downloadSingleProductExcel() {
   색상목록.forEach(color => {
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
-      data.push({
-        제품선택: 상품명,
-        옵션가: 0,
-        재고수량: 품절 ? 0 : 99999,
-        관리코드: 대표.상품명,
-        사용여부: "Y"
-      });
+      const row = { 제품선택: 상품명, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" };
+      if (mode === "colorOnly") row.색상 = color;
+      if (mode === "sizeOnly") row.사이즈 = color;
+      data.push(row);
     } else {
       사이즈목록.forEach(size => {
         const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
-        const row = {
-          제품선택: 상품명,
-          사이즈: size,
-          옵션가: 0,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
-          사용여부: "Y"
-        };
+        const row = { 제품선택: 상품명, 사이즈: size, 옵션가: 0, 재고수량: 품절 ? 0 : 99999, 관리코드: 대표.상품명, 사용여부: "Y" };
+        if (mode === "colorOnly") row.색상 = color;
+        if (mode === "sizeOnly") {
+          row.제품선택 = 상품명;
+          row.사이즈 = size;
+        }
         data.push(row);
       });
     }
   });
 
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
-  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
-}
-
-  // 열 정리
   const hasSize = data.some(row => row.사이즈);
   if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-  if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
+  if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
   if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
 
   const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
@@ -407,11 +388,13 @@ function downloadSingleProductExcel() {
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
 }
+
 // 단품등록용 전체 엑셀 ZIP 다운로드
 function downloadSingleProductExcelAll() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
+  const mode = getOptionDisplayMode();
   const zip = new JSZip();
   const 상품그룹 = [...new Set(rows.map(r => r.상품명))];
 
@@ -425,7 +408,9 @@ function downloadSingleProductExcelAll() {
 
     const data = [];
 
-    색상목록.forEach(color => {
+    const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
+
+    색상배열.forEach(color => {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
         data.push({
@@ -437,7 +422,7 @@ function downloadSingleProductExcelAll() {
         });
       } else {
         사이즈목록.forEach(size => {
-          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조조합.includes(`${color}-${size}`);
           data.push({
             제품선택: 대표상품명,
             사이즈: size,
@@ -450,25 +435,11 @@ function downloadSingleProductExcelAll() {
       }
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
-    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-    const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
-    zip.file(`단품등록_${safeFileName}.xls`, wbout);
-  });
-
-  zip.generateAsync({ type: "blob" }).then(content => {
-    saveAs(content, "단품등록_전체다운로드.zip");
-  });
-}
-
-
     // 열 정리
     const hasSize = data.some(row => row.사이즈);
-    if (mode !== "colorOnly") data.forEach(row => delete row.색상);
-    if (mode === "sizeOnly") data.forEach(row => delete row.색상);
-    if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
+    if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
+    if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
+    if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
 
     const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
     const ws = XLSX.utils.json_to_sheet(data);
@@ -482,6 +453,7 @@ function downloadSingleProductExcelAll() {
     saveAs(content, "단품등록_전체다운로드.zip");
   });
 }
+
 // 색상/사이즈 분리 함수
 function parseOptions(input) {
   if (!input || typeof input !== 'string') return [];
