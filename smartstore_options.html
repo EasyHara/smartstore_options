@@ -481,6 +481,29 @@ function applyOptionMode(제품명, 색상, 사이즈, 상품명, 순번) {
       : { 제품선택: 제품선택값 };
   }
 }
+function expandSizes(sizeStr) {
+  if (!sizeStr || typeof sizeStr !== 'string') return [];
+
+  // 쉼표 또는 슬래시로 구분된 경우
+  if (sizeStr.includes(',') || sizeStr.includes('/')) {
+    return sizeStr.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  }
+
+  // 범위 (예: 230~240) 처리
+  const rangeMatch = sizeStr.match(/^(\d{3})~(\d{3})$/);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1]);
+    const end = parseInt(rangeMatch[2]);
+    const step = 5;
+    const result = [];
+    for (let i = start; i <= end; i += step) {
+      result.push(i.toString());
+    }
+    return result;
+  }
+
+  return [sizeStr.trim()];
+}
 
   </script>
 </body>
