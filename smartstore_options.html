@@ -24,6 +24,11 @@
 
     <input type="file" id="inputFile" accept=".xls,.xlsx">
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+    <p style="font-size: 14px; color: #555; margin-bottom: 10px;">
+    ※ 사이즈 입력 안내:<br>
+    - <strong>230~240</strong>: 5단위 자동 생성 (230, 235, 240)<br>
+    - <strong>230,235/245</strong>: 쉼표 또는 슬래시로 개별 사이즈 지정<br>
+    </p>
 
     <p>옵션 노출 방식:
       <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
@@ -63,18 +68,24 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
     ) || workbook.SheetNames[0];
 
     const sheet = workbook.Sheets[sheetName];
-    if (!sheet) return alert("엑셀 시트를 찾을 수 없습니다.");
+    if (!sheet) return alert("상품옵션 시트를 찾을 수 없습니다.");
 
     const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
     clearTable();
     json.forEach(row => addRow({
-      상품명: row["상품명"], 판매가: row["판매가"], 색상: row["색상"], 사이즈: row["사이즈"],
-      ["1번 상품명"]: row["1번 상품명"], 품절된조합: row["품절된 조합"] || '',
+      상품명: row["상품명"], 
+      판매가: row["판매가"], 
+      색상: row["색상"], 
+      사이즈: row["사이즈"],
+      ["1번 상품명"]: row["1번 상품명"], 
+      품절된조합: row["품절된 조합"] || '', 
       제외: row["제외"] === 'Y' || row["제외"] === true
     }));
   };
   reader.readAsArrayBuffer(file);
 });
+
 
 function addRow(data = {}) {
   const tbody = document.querySelector("#inputTable tbody");
