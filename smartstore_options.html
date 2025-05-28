@@ -211,7 +211,7 @@ function downloadRepresentative() {
   const hasSize = data.some(row => row.사이즈);
   if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
   if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
-  if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
+  if (mode === "sizeOnly") data.forEach(row => delete row.색상);
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -282,7 +282,7 @@ function generateZip() {
     const hasSize = data.some(row => row.사이즈);
     if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
     if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
-    if (mode !== "sizeOnly") data.forEach(row => delete row.색상);
+    if (mode === "sizeOnly") data.forEach(row => delete row.색상);
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
