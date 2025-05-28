@@ -386,30 +386,7 @@ function downloadSingleProductExcel() {
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
 }
-  // 불필요한 열 제거
-  const hasSize = data.some(row => row.사이즈);
-  if (mode !== "colorOnly") {
-    data.forEach(row => delete row.색상);
-  }
-  if (mode === "sizeOnly") {
-    data.forEach(row => delete row.색상);
-  }
-  if (!hasSize && mode !== "sizeOnly") {
-    data.forEach(row => delete row.사이즈);
-  }
-  if (mode !== "colorOnly") data.forEach(row => delete row.색상);
-  if (mode === "sizeOnly") data.forEach(row => delete row.색상);
-  if (!data.some(r => r.사이즈) && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
 
-  const safeFileName = (대표.상품명 || "단품등록").replace(/[\\/:*?"<>|]/g, "").trim();
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
-  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${대표.상품명}.xls`);
-  const wbout = XLSX.write(wb, { bookType: 'biff8', type: 'array' });
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
-}
 
 // 단품등록용 전체 엑셀 ZIP 다운로드
 function downloadSingleProductExcelAll() {
