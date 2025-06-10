@@ -7,92 +7,140 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: 'Pretendard', sans-serif; padding: 20px; background: #f5f6fa; color: #333; }
-    .container { max-width: 100%; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow-x: auto; }
-    h1 { font-size: 24px; margin-bottom: 16px; }
-    table { width: 100%; min-width: 1200px; border-collapse: collapse; margin: 10px 0; table-layout: fixed; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 14px; word-break: break-word; }
-    th { background-color: #f0f0f0; }
-    button, input[type="file"], input[type="number"], input[type="text"] {
-    margin: 4px;
-    padding: 6px 10px;
-    font-size: 14px;
-    height: 32px;
-    line-height: 1.2;
-    vertical-align: middle;
-}
+    /* ───────────────────────────────────────────────────────────── */
+    /* 박스 모델 통일 */
+    *, *::before, *::after { box-sizing: border-box; }
 
+    body {
+      font-family: 'Pretendard', sans-serif;
+      padding: 20px;
+      background: #f5f6fa;
+      color: #333;
+    }
+    .container {
+      max-width: 100%;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+    h1 { font-size: 24px; margin-bottom: 16px; }
+
+    /* 테이블 기본 스타일 */
+    table {
+      width: 100%;
+      min-width: 1200px;
+      border-collapse: collapse;
+      margin: 10px 0;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+      word-break: break-word;
+      vertical-align: middle;
+    }
+    th { background-color: #f0f0f0; }
+
+    /* 버튼·파일·인풋 기본 스타일 */
+    button,
+    input[type="file"],
+    input[type="number"],
+    input[type="text"] {
+      margin: 4px;
+      padding: 6px 10px;
+      font-size: 14px;
+      height: 36px;
+      line-height: 1.2;
+      vertical-align: middle;
+    }
+
+    /* 테이블 내부 input width 통일 */
+    #inputTable td input[type="text"],
+    #inputTable td input[type="number"] {
+      width: 100%;
+    }
+
+    /* 라디오·체크박스 중앙 정렬 */
+    #inputTable td input[type="radio"],
+    #inputTable td input[type="checkbox"] {
+      display: block;
+      margin: auto;
+      transform: scale(1.2);
+    }
+
+    /* 칼럼 폭 조정 */
+    #inputTable th:nth-child(1), #inputTable td:nth-child(1) { width: 5%; }
+    #inputTable th:nth-child(2), #inputTable td:nth-child(2) { width: 20%; }
+    #inputTable th:nth-child(3), #inputTable td:nth-child(3) { width: 15%; }
+    #inputTable th:nth-child(4), #inputTable td:nth-child(4) { width: 15%; }
+    #inputTable th:nth-child(5), #inputTable td:nth-child(5) { width: 15%; }
+    #inputTable th:nth-child(6), #inputTable td:nth-child(6) { width: 15%; }
+    #inputTable th:nth-child(7), #inputTable td:nth-child(7) { width: 10%; }
+    #inputTable th:nth-child(8), #inputTable td:nth-child(8) { width: 5%; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📃 스마트스토어 옵션 자동 생성기</h1>
+    <input type="file" id="inputFile" accept=".xls,.xlsx">
+    <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
 
-<input type="file" id="inputFile" accept=".xls,.xlsx">
-<button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
+    <div style="position: relative; background: #f8f9fc; padding: 16px 20px; margin-bottom: 24px; border-radius: 10px; font-size: 14px; color: #333; line-height: 1.8; box-shadow: 0 0 0 1px #e5e7eb;">
+      <a href="https://github.com/EasyHara/smartstore_options/blob/main/smartstore_options.html" target="_blank" style="position: absolute; top: 12px; right: 16px; background: #f8f9fc; color: #2563eb; font-weight: 500; font-size: 14px; text-decoration: none; padding: 4px 10px; border: 1px solid #d1d5db; border-radius: 6px;">웹 파일</a>
+      <strong style="font-size: 15px; display: block; margin-bottom: 8px; color: #1f2937;">사이즈 입력 방법 안내</strong>
+      <ul style="list-style: disc; padding-left: 20px; margin: 0;">
+        <li><strong>범위 입력:</strong> <code>230~240</code> → <span style="color:#2563eb; font-weight: 600;">5단위 자동 생성</span> <span style="color: #888;">(예: 230, 235, 240)</span></li>
+        <li><strong>개별 입력:</strong> <code>230,235/245</code> → 쉼표 또는 슬래시로 <span style="color:#2563eb; font-weight: 600;">사이즈 직접 지정</span></li>
+        <li><span style="color:#2563eb; font-weight: 600;">네이버 규정에 따라 미달, 초과된 옵션은 다운로드시 자동으로 없어집니다</span></li>
+      </ul>
+    </div>
 
-<div style="position: relative; background: #f8f9fc; padding: 16px 20px; margin-bottom: 24px; border-radius: 10px; font-size: 14px; color: #333; line-height: 1.8; box-shadow: 0 0 0 1px #e5e7eb;">
-  <!-- 웹 파일 버튼 -->
-  <a href="https://github.com/EasyHara/smartstore_options/blob/main/smartstore_options.html" target="_blank"
-     style="position: absolute; top: 12px; right: 16px; background: #f8f9fc; color: #2563eb; font-weight: 500; font-size: 14px; text-decoration: none; padding: 4px 10px; border: 1px solid #d1d5db; border-radius: 6px;">
-    웹 파일
-  </a>
+    <div style="margin: 20px auto; display: flex; justify-content: center; align-items: center; gap: 24px; flex-wrap: wrap;">
+      <span style="font-weight: 500;">옵션 노출 방식:</span>
+      <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
+      <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
+      <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
 
-  <strong style="font-size: 15px; display: block; margin-bottom: 8px; color: #1f2937;">사이즈 입력 방법 안내</strong>
-  <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-    <li><strong>범위 입력:</strong> <code>230~240</code> → <span style="color:#2563eb; font-weight: 600;">5단위 자동 생성</span> <span style="color: #888;">(예: 230, 235, 240)</span></li>
-    <li><strong>개별 입력:</strong> <code>230,235/245</code> → 쉼표 또는 슬래시로 <span style="color:#2563eb; font-weight: 600;">사이즈 직접 지정</span></li>
-    <li><span style="color:#2563eb; font-weight: 600;">네이버 규정에 따라 미달, 초과된 옵션은 다운로드시 자동으로 없어집니다</span></li>
-  </ul>
-</div>
-
-<div style="margin: 20px auto; display: flex; justify-content: center; align-items: center; gap: 24px; flex-wrap: wrap;">
-  <span style="font-weight: 500;">옵션 노출 방식:</span>
-  <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
-  <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
-  <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
-
-<label for="discountRate" style="font-weight: 500;">옵션가 계산 기준 할인률 (%)</label>
-<input type="number" id="discountRate" value="0" min="0" max="99" step="1"
-       style="width: 60px; padding: 6px 10px; font-size: 14px; text-align: right;">%
-<span style="color: #888; font-size: 13px;">(네이버할인가 기준)</span>
-
-</div>
-
+      <label for="discountRate" style="font-weight: 500;">옵션가 계산 기준 할인률 (%)</label>
+      <input type="number" id="discountRate" value="0" min="0" max="99" step="1" style="width: 60px; text-align: right;">%
+      <span style="color: #888; font-size: 13px;">(네이버할인가 기준)</span>
+    </div>
 
     <table id="inputTable">
       <thead>
         <tr>
-          <th>선택</th><th>상품명</th><th>판매가(네이버할인가)</th><th>색상</th><th>사이즈</th>
-          <th>1번 상품명</th><th>품절된 색상,사이즈</th><th>옵션에서 제외</th>
+          <th>선택</th><th>상품명</th><th>판매가(네이버할인가)</th><th>색상</th><th>사이즈</th><th>1번 상품명</th><th>품절된 색상,사이즈</th><th>옵션에서 제외</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
+
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearTable()">초기화</button>
     <br><br>
-<div style="text-align: center; margin-top: 20px;">
-  <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
-  <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
-  <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
-  <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
-  <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
+      <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
+      <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
+      <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
+      <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
 </div>
   </div>
 
   <script>
   // 옵션가 유효성 검사 함수 (네이버 규정 반영)
-function isValidOptionPrice(basePrice, currentPrice) {
-  const diff = currentPrice - basePrice;
-
+function isValidOptionPrice(basePrice, diff) {
   if (basePrice < 2000) {
-    return diff >= 0 && diff <= basePrice * 1.0;  // 옵션가 0~+100%
+    return diff >= 0 && diff <= basePrice * 1.0;
   } else if (basePrice < 10000) {
-    return diff >= basePrice * -0.5 && diff <= basePrice * 1.0;  // -50%~+100%
+    return diff >= basePrice * -0.5 && diff <= basePrice * 1.0;
   } else {
-    return diff >= basePrice * -0.5 && diff <= basePrice * 0.5;  // -50%~+50%
+    return diff >= basePrice * -0.5 && diff <= basePrice * 0.5;
   }
 }
 
@@ -196,16 +244,12 @@ function downloadRepresentative() {
   const data = [];
 
   items.forEach(item => {
-    // ★ 현재 옵션의 "정가" (100원 단위 반올림)
-    const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
+    // 1) 옵션가 = 할인가 차이
+   const 옵션가 = item.판매가 - 대표.판매가;
 
-    // ★ [수정] 옵션가 산출: "할인가(판매가) 차이"로!
-    const 옵션가 = item.판매가 - 대표.판매가;
+   // 2) 허용범위 체크: 대표 정가 기준, diff = 옵션가
+   if (!isValidOptionPrice(대표정가, 옵션가)) return;
 
-    // ★ 허용범위 체크는 정가 기준 (기존대로)
-    if (!isValidOptionPrice(대표정가, 현재정가)) return;
-
-    // 이하 동일
     const 순번 = index < 10 ? `0${index}` : `${index}`;
     const 상품이름 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
       ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
@@ -268,7 +312,7 @@ function generateZip() {
       const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
       const 옵션가 = item.판매가 - 대표.판매가;
 
-      if (!isValidOptionPrice(대표정가, 현재정가)) return;
+      if (!isValidOptionPrice(대표정가, 옵션가)) return;
 
       const 순번 = index < 10 ? `0${index}` : `${index}`;
       const 상품이름 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
