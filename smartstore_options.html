@@ -84,15 +84,18 @@ button, input[type="file"], input[type="number"], input[type="text"] {
 
   <script>
   // 옵션가 유효성 검사 함수 (네이버 규정 반영)
-  function isValidOptionPrice(basePrice, currentPrice) {
-    if (basePrice < 2000) {
-      return currentPrice >= basePrice && currentPrice <= basePrice * 2;
-    } else if (basePrice < 10000) {
-      return currentPrice >= basePrice * 0.5 && currentPrice <= basePrice * 2;
-    } else {
-      return currentPrice >= basePrice * 0.5 && currentPrice <= basePrice * 1.5;
-    }
+function isValidOptionPrice(basePrice, currentPrice) {
+  const diff = currentPrice - basePrice;
+
+  if (basePrice < 2000) {
+    return diff >= 0 && diff <= basePrice * 1.0;  // 옵션가 0~+100%
+  } else if (basePrice < 10000) {
+    return diff >= basePrice * -0.5 && diff <= basePrice * 1.0;  // -50%~+100%
+  } else {
+    return diff >= basePrice * -0.5 && diff <= basePrice * 0.5;  // -50%~+50%
   }
+}
+
 
   // 할인률 기준으로 원래 판매가 계산
   function calculateOriginalPrice(salePrice, discountRate) {
