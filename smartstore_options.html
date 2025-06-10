@@ -44,6 +44,12 @@
       <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
       <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
     </p>
+  <div style="margin: 10px 0;">
+    <label for="discountRate" style="font-weight: 500;">옵션가 계산 기준 할인률 (%):</label>
+    <input type="number" id="discountRate" value="45" min="0" max="99" step="1"
+         style="width: 60px; margin-left: 8px; padding: 4px; font-size: 14px;"> %
+    <span style="color: #888; font-size: 13px; margin-left: 10px;">(판매가 = 할인가 기준)</span>
+  </div>
 
     <table id="inputTable">
       <thead>
@@ -65,6 +71,10 @@
   </div>
 
   <script>
+    function calculateOriginalPrice(salePrice, discountRate) {
+  const raw = salePrice / (1 - discountRate / 100);
+  return Math.round(raw / 100) * 100;  // 100원 단위 반올림
+}
     document.getElementById("inputFile").addEventListener("change", function(e) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -149,7 +159,8 @@ function downloadRepresentative() {
   const 대표 = rows.find(r => r.대표) || rows[0];
   if (!대표) return alert("대표 상품이 없습니다.");
 
-  const 대표판매가 = 대표.판매가;
+  const 할인률 = parseFloat(document.getElementById("discountRate").value) || 0;
+  const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
   const 대표상품명 = 대표.상품명;
   const mode = getOptionDisplayMode();
 
@@ -161,6 +172,12 @@ function downloadRepresentative() {
   const data = [];
 
   items.forEach(item => {
+    const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
+    const 옵션가 = 현재정가 - 대표정가;
+
+    // 네이버 규정 체크 (-50% ~ +100%)
+    if (현재정가 < 대표정가 * 0.5 || 현재정가 > 대표정가 * 2.0) return;
+
     const 순번 = index < 10 ? `0${index}` : `${index}`;
     const is대표 = item === 대표;
 
@@ -181,7 +198,7 @@ function downloadRepresentative() {
         const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
         data.push({
           ...base,
-          옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
+          옵션가,
           재고수량: 품절 ? 0 : 99999,
           관리코드: item.상품명,
           사용여부: "Y"
@@ -195,7 +212,7 @@ function downloadRepresentative() {
           const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
           data.push({
             ...base,
-            옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
+            옵션가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
             사용여부: "Y"
@@ -207,11 +224,11 @@ function downloadRepresentative() {
     index++;
   });
 
-  // 열 정리
-  const hasSize = data.some(row => row.사이즈);
   if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-  if (mode !== "colorOnly" && !hasSize) data.forEach(row => delete row.사이즈);
   if (mode === "sizeOnly") data.forEach(row => delete row.색상);
+  if (mode !== "colorOnly" && !data.some(row => row.사이즈)) {
+    data.forEach(row => delete row.사이즈);
+  }
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -226,11 +243,12 @@ function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
+  const 할인률 = parseFloat(document.getElementById("discountRate").value) || 0;
   const mode = getOptionDisplayMode();
   const zip = new JSZip();
 
   rows.forEach(대표 => {
-    const 대표판매가 = 대표.판매가;
+    const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
     const 대표상품명 = (대표.상품명 || "대표상품").replace(/[\/:*?"<>|]/g, "").trim();
     const items = rows
       .filter(r => !r.제외)
@@ -240,6 +258,12 @@ function generateZip() {
     const data = [];
 
     items.forEach(item => {
+      const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
+      const 옵션가 = 현재정가 - 대표정가;
+
+      // 옵션 범위 체크
+      if (현재정가 < 대표정가 * 0.5 || 현재정가 > 대표정가 * 2.0) return;
+
       const 순번 = index < 10 ? `0${index}` : `${index}`;
       const is대표 = item === 대표;
       const 상품이름 = is대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명
@@ -256,7 +280,7 @@ function generateZip() {
           const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
           data.push({
             ...base,
-            옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
+            옵션가,
             재고수량: 품절 ? 0 : 99999,
             관리코드: item.상품명,
             사용여부: "Y"
@@ -267,7 +291,7 @@ function generateZip() {
             const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
             data.push({
               ...base,
-              옵션가: is대표 ? 0 : item.판매가 - 대표판매가,
+              옵션가,
               재고수량: 품절 ? 0 : 99999,
               관리코드: item.상품명,
               사용여부: "Y"
@@ -279,10 +303,11 @@ function generateZip() {
       index++;
     });
 
-    const hasSize = data.some(row => row.사이즈);
     if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
-    if (!hasSize && mode !== "sizeOnly") data.forEach(row => delete row.사이즈);
     if (mode === "sizeOnly") data.forEach(row => delete row.색상);
+    if (mode !== "colorOnly" && !data.some(row => row.사이즈)) {
+      data.forEach(row => delete row.사이즈);
+    }
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
