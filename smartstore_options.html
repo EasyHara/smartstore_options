@@ -40,17 +40,20 @@
   </ul>
 </div>
 
-    <p>옵션 노출 방식:
-      <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
-      <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
-      <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
-    </p>
-  <div style="margin: 10px 0;">
-    <label for="discountRate" style="font-weight: 500;">옵션가 계산 기준 할인률 (%):</label>
-    <input type="number" id="discountRate" value="0" min="0" max="99" step="1"
-         style="width: 60px; margin-left: 8px; padding: 4px; font-size: 14px;"> %
-    <span style="color: #888; font-size: 13px; margin-left: 10px;">(네이버할인가 기준)</span>
-  </div>
+<div style="margin: 10px 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+  <span style="font-weight: 500;">옵션 노출 방식:</span>
+  <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
+  <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
+  <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
+
+  <label for="discountRate" style="margin-left: 20px; font-weight: 500;">
+    옵션가 계산 기준 할인률 (%):
+  </label>
+  <input type="number" id="discountRate" value="0" min="0" max="99" step="1"
+         style="width: 60px; margin-left: 4px; padding: 4px; font-size: 14px;"> %
+  <span style="color: #888; font-size: 13px; margin-left: 6px;">(네이버할인가 기준)</span>
+</div>
+
 
     <table id="inputTable">
       <thead>
