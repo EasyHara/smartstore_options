@@ -72,10 +72,22 @@
   </div>
 
   <script>
-    function calculateOriginalPrice(salePrice, discountRate) {
-  const raw = salePrice / (1 - discountRate / 100);
-  return Math.round(raw / 100) * 100;  // 100원 단위 반올림
-}
+  // 옵션가 유효성 검사 함수 (네이버 규정 반영)
+  function isValidOptionPrice(basePrice, currentPrice) {
+    if (basePrice < 2000) {
+      return currentPrice >= basePrice && currentPrice <= basePrice * 2;
+    } else if (basePrice < 10000) {
+      return currentPrice >= basePrice * 0.5 && currentPrice <= basePrice * 2;
+    } else {
+      return currentPrice >= basePrice * 0.5 && currentPrice <= basePrice * 1.5;
+    }
+  }
+
+  // 할인률 기준으로 원래 판매가 계산
+  function calculateOriginalPrice(salePrice, discountRate) {
+    const raw = salePrice / (1 - discountRate / 100);
+    return Math.round(raw / 100) * 100;  // 100원 단위 반올림
+  }
     document.getElementById("inputFile").addEventListener("change", function(e) {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -165,10 +177,7 @@ function downloadRepresentative() {
   const 대표상품명 = 대표.상품명;
   const mode = getOptionDisplayMode();
 
-  const items = rows
-    .filter(r => !r.제외)
-    .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
-
+  const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
   let index = 1;
   const data = [];
 
@@ -176,16 +185,11 @@ function downloadRepresentative() {
     const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
     const 옵션가 = 현재정가 - 대표정가;
 
-    // 네이버 규정 체크 (-50% ~ +100%)
-    if (현재정가 < 대표정가 * 0.5 || 현재정가 > 대표정가 * 2.0) return;
+    if (!isValidOptionPrice(대표정가, 현재정가)) return;
 
     const 순번 = index < 10 ? `0${index}` : `${index}`;
-    const is대표 = item === 대표;
-
-    const 상품이름 = is대표
-      ? (item["1번 상품명"] && item["1번 상품명"] !== item.상품명
-          ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
-          : item.상품명)
+    const 상품이름 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
+      ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
       : item.상품명;
 
     const 색상목록 = parseOptions(item.색상);
@@ -197,27 +201,12 @@ function downloadRepresentative() {
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
         const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
-        data.push({
-          ...base,
-          옵션가,
-          재고수량: 품절 ? 0 : 99999,
-          관리코드: item.상품명,
-          사용여부: "Y"
-        });
+        data.push({ ...base, 옵션가, 재고수량: 품절 ? 0 : 99999, 관리코드: item.상품명, 사용여부: "Y" });
       } else {
         사이즈목록.forEach(size => {
-          const 품절 =
-            품절조합.includes(color) ||
-            품절조합.includes(size) ||
-            품절조합.includes(`${color}-${size}`);
+          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
           const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
-          data.push({
-            ...base,
-            옵션가,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: item.상품명,
-            사용여부: "Y"
-          });
+          data.push({ ...base, 옵션가, 재고수량: 품절 ? 0 : 99999, 관리코드: item.상품명, 사용여부: "Y" });
         });
       }
     });
@@ -251,10 +240,7 @@ function generateZip() {
   rows.forEach(대표 => {
     const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
     const 대표상품명 = (대표.상품명 || "대표상품").replace(/[\/:*?"<>|]/g, "").trim();
-    const items = rows
-      .filter(r => !r.제외)
-      .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
-
+    const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
     let index = 1;
     const data = [];
 
@@ -262,12 +248,10 @@ function generateZip() {
       const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
       const 옵션가 = 현재정가 - 대표정가;
 
-      // 옵션 범위 체크
-      if (현재정가 < 대표정가 * 0.5 || 현재정가 > 대표정가 * 2.0) return;
+      if (!isValidOptionPrice(대표정가, 현재정가)) return;
 
       const 순번 = index < 10 ? `0${index}` : `${index}`;
-      const is대표 = item === 대표;
-      const 상품이름 = is대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명
+      const 상품이름 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
         ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
         : item.상품명;
 
@@ -279,24 +263,12 @@ function generateZip() {
         if (사이즈목록.length === 0) {
           const 품절 = item.품절된조합.includes(color);
           const base = applyOptionMode(상품이름, color, null, 상품이름, 순번);
-          data.push({
-            ...base,
-            옵션가,
-            재고수량: 품절 ? 0 : 99999,
-            관리코드: item.상품명,
-            사용여부: "Y"
-          });
+          data.push({ ...base, 옵션가, 재고수량: 품절 ? 0 : 99999, 관리코드: item.상품명, 사용여부: "Y" });
         } else {
           사이즈목록.forEach(size => {
             const 품절 = item.품절된조합.includes(color) || item.품절된조합.includes(size) || item.품절된조합.includes(`${color}-${size}`);
             const base = applyOptionMode(상품이름, color, size, 상품이름, 순번);
-            data.push({
-              ...base,
-              옵션가,
-              재고수량: 품절 ? 0 : 99999,
-              관리코드: item.상품명,
-              사용여부: "Y"
-            });
+            data.push({ ...base, 옵션가, 재고수량: 품절 ? 0 : 99999, 관리코드: item.상품명, 사용여부: "Y" });
           });
         }
       });
