@@ -14,8 +14,15 @@
     table { width: 100%; min-width: 1200px; border-collapse: collapse; margin: 10px 0; table-layout: fixed; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; font-size: 14px; word-break: break-word; }
     th { background-color: #f0f0f0; }
-    button, input[type="file"], input[type="text"] { margin: 4px; padding: 6px 12px; font-size: 14px; }
-    input[type="checkbox"] { margin-right: 4px; }
+button, input[type="file"], input[type="number"], input[type="text"] {
+  margin: 4px;
+  padding: 10px 16px;
+  font-size: 14px;
+  height: 38px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
   </style>
 </head>
 <body>
@@ -40,18 +47,17 @@
   </ul>
 </div>
 
-<div style="margin: 10px 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+<div style="margin: 20px auto; display: flex; justify-content: center; align-items: center; gap: 24px; flex-wrap: wrap;">
   <span style="font-weight: 500;">옵션 노출 방식:</span>
   <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
   <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
   <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
 
-  <label for="discountRate" style="margin-left: 20px; font-weight: 500;">
-    옵션가 계산 기준 할인률 (%):
-  </label>
-  <input type="number" id="discountRate" value="0" min="0" max="99" step="1"
-         style="width: 60px; margin-left: 4px; padding: 4px; font-size: 14px;"> %
-  <span style="color: #888; font-size: 13px; margin-left: 6px;">(네이버할인가 기준)</span>
+<label for="discountRate" style="font-weight: 500;">옵션가 계산 기준 할인률 (%)</label>
+<input type="number" id="discountRate" value="0" min="0" max="99" step="1"
+       style="width: 60px; padding: 6px 10px; font-size: 14px; text-align: right;">%
+<span style="color: #888; font-size: 13px;">(네이버할인가 기준)</span>
+
 </div>
 
 
@@ -67,11 +73,13 @@
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearTable()">초기화</button>
     <br><br>
-    <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
-    <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
-    <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
-    <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
-    <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
+<div style="text-align: center; margin-top: 20px;">
+  <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
+  <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
+  <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
+  <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
+  <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
+</div>
   </div>
 
   <script>
