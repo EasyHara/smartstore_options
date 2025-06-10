@@ -196,11 +196,16 @@ function downloadRepresentative() {
   const data = [];
 
   items.forEach(item => {
+    // ★ 현재 옵션의 "정가" (100원 단위 반올림)
     const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
-    const 옵션가 = 현재정가 - 대표정가;
 
+    // ★ [수정] 옵션가 산출: "할인가(판매가) 차이"로!
+    const 옵션가 = item.판매가 - 대표.판매가;
+
+    // ★ 허용범위 체크는 정가 기준 (기존대로)
     if (!isValidOptionPrice(대표정가, 현재정가)) return;
 
+    // 이하 동일
     const 순번 = index < 10 ? `0${index}` : `${index}`;
     const 상품이름 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
       ? `${item.상품명.split(' ')[0]} ${item["1번 상품명"]}`
@@ -228,6 +233,7 @@ function downloadRepresentative() {
     index++;
   });
 
+  // 이하 동일
   if (mode === "colorOnly") data.forEach(row => delete row.사이즈);
   if (mode === "sizeOnly") data.forEach(row => delete row.색상);
   if (mode !== "colorOnly" && !data.some(row => row.사이즈)) {
@@ -260,7 +266,7 @@ function generateZip() {
 
     items.forEach(item => {
       const 현재정가 = calculateOriginalPrice(item.판매가, 할인률);
-      const 옵션가 = 현재정가 - 대표정가;
+      const 옵션가 = item.판매가 - 대표.판매가;
 
       if (!isValidOptionPrice(대표정가, 현재정가)) return;
 
