@@ -249,17 +249,17 @@
   let originalData = [];
     
       // 플러그인 마운트
-  Sortable.mount(Sortable.MultiDrag);
+    Sortable.mount(SortableMultiDrag);
 
-  , () => {
-    Sortable.create(document.querySelector('#inputTable tbody'), {
-      animation: 150,
-      handle: 'td',
-      multiDrag: true,       // 멀티 드래그 활성화
-      selectedClass: 'selected',
-      multiDragKey: 'ctrl'   // Ctrl+클릭으로 여러 행 선택
+    document.addEventListener('DOMContentLoaded', () => {
+      Sortable.create(document.querySelector('#inputTable tbody'), {
+        animation: 150,
+        handle: 'td',
+        multiDrag: true,          // 멀티 드래그 활성화
+        selectedClass: 'selected',
+        multiDragKey: 'ctrl'      // Ctrl+클릭으로 여러 행 선택
+      });
     });
-  });
 
   // 옵션가 유효성 검사 함수 (네이버 규정 반영)
 function isValidOptionPrice(basePrice, diff) {
@@ -812,21 +812,7 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
 
   reader.readAsArrayBuffer(file);
 });
-    
-
-  // 1) 플러그인 UMD 전역 변수로 마운트
-  Sortable.mount(SortableMultiDrag);
-
-  // 2) 테이블 드래그 초기화 (한 번만)
-  document.addEventListener('DOMContentLoaded', () => {
-    Sortable.create(document.querySelector('#inputTable tbody'), {
-      animation: 150,
-      handle: 'td',
-      multiDrag: true,
-      selectedClass: 'selected',
-      multiDragKey: 'ctrl'
-    });
-  });
+  
 
   </script>
 </body>
