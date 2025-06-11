@@ -244,9 +244,11 @@
     }
 
     // 테이블 초기화
-    function clearTable() {
-      document.querySelector('#inputTable tbody').innerHTML = '';
-    }
+   function clearTable() {
+    document.querySelector('#inputTable tbody').innerHTML = '';
+  document.getElementById('inputFile').value = '';
+  originalData = [];
+  }
 
     // 원래 순서 복원
     function resetOrder() {
