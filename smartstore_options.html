@@ -7,8 +7,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
   <style>
     /* ───────────────────────────────────────────────────────────── */
     /* 박스 모델 통일 */
@@ -190,19 +190,18 @@
   </div>
 
   <script>
-
-// 1) MultiDrag 플러그인 마운트
-Sortable.mount(Sortable.MultiDrag);
-
-// 2) tbody 에 멀티 드래그 활성화
-Sortable.create(document.querySelector('#inputTable tbody'), {
-  animation: 150,
-  handle: 'td',
-  multiDrag: true,
-  selectedClass: 'selected',
-  multiDragKey: 'ctrl',
-  fallbackTolerance: 3,
-});
+  // 플러그인을 인스턴스로 생성해서 마운트
+  Sortable.mount(new MultiDrag());
+  
+  // 이제 한 번만 create 해주시면 됩니다
+  Sortable.create(document.querySelector('#inputTable tbody'), {
+    animation: 150,
+    handle: 'td',
+    multiDrag: true,
+    selectedClass: 'selected',
+    multiDragKey: 'ctrl',
+    fallbackTolerance: 3,
+  });
     // 3) 클릭 핸들러 정의
 function onRowClick(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
