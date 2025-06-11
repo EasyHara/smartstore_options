@@ -599,21 +599,26 @@ function getOptionDisplayMode() {
     // 순번이 있을 때만 "NN) " 형태를 붙이고, 없으면 그냥 제품명만
     const prefix = 순번 ? `${순번}) ` : "";
     let 텍스트 = `${prefix}${제품명}`;
-    if (!색상 && !사이즈) {
-      return { 제품선택: 텍스트 };
+  if (!색상 && !사이즈) {
+    return { 제품선택: 텍스트 };
   }
-      if (getOptionDisplayMode() === "colorOnly") {
+  if (getOptionDisplayMode() === "colorOnly") {
     return { 제품선택: 텍스트, 색상 };
   }
   if (getOptionDisplayMode() === "sizeOnly") {
-    return 사이즈 ? { 제품선택: 텍스트, 사이즈 } : { 제품선택: 텍스트 };
+    return 사이즈
+      ? { 제품선택: 텍스트, 사이즈 }
+      : { 제품선택: 텍스트 };
   }
   // both
+  // 색상&사이즈 모두
   if (색상) 텍스트 += ` / ${색상}`;
-  return 사이즈
-    ? { 제품선택: 텍스트, 사이즈 }
-    : { 제품선택: 텍스트 };
-}
+  if (사이즈) {
+    return { 제품선택: 텍스트, 색상, 사이즈 };
+  } else {
+    return { 제품선택: 텍스트, 색상 };
+  }
+    
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
 
