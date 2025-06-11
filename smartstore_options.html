@@ -246,6 +246,8 @@
   </div>
 
   <script>
+  let originalData = [];
+    
       // 플러그인 마운트
   Sortable.mount(SortableMultiDrag);
 
@@ -355,46 +357,41 @@ function isValidOptionPrice(basePrice, diff) {
 
 
 // 대표상품 기준 엑셀 다운로드
-function downloadRepresentative() {
-  const rows = getDataFromTable().filter(r => !r.제외);
-  if (!rows.length) return alert("출력할 데이터가 없습니다.");
+ function downloadRepresentative() {
+  const current = getDataFromTable().filter(r => !r.제외);
+  if (!current.length) return alert("출력할 데이터가 없습니다.");
 
-  const 대표 = rows.find(r => r.대표) || rows[0];
+  const 대표 = current.find(r => r.대표) || current[0];
   const 할인률 = parseFloat(document.getElementById("discountRate").value) || 0;
   const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
   const mode = getOptionDisplayMode();
 
-  // 1) raw data 생성 (applyOptionMode 호출 시 prefix는 빈 문자열)
+  // 1) 업로드된 원본 순서를 기반으로 대표 다음 순서 배열 구성
+  const orderedRows = [
+    대표,
+    ...originalData.filter(r => !r.제외 && r !== 대표)
+  ];
+
+  // 2) 옵션 데이터 생성 (원래 로직 그대로)
   let data = [];
-  rows
-    .sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0))
-    .forEach(item => {
-      const 옵션가 = item.판매가 - 대표.판매가;
-      if (!isValidOptionPrice(대표정가, 옵션가)) return;
-
-      const 제품명 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
-        ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}`
-        : item.상품명;
-
-      const 색상목록 = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
-      const 사이즈목록 = expandSizes(item.사이즈);
-
-      색상목록.forEach(col => {
-        if (!사이즈목록.length) {
-          data.push({
-            ...applyOptionMode(제품명, col, null, 제품명, ""),
-            옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y"
-          });
-        } else {
-          사이즈목록.forEach(sz => {
-            data.push({
-              ...applyOptionMode(제품명, col, sz, 제품명, ""),
-              옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y"
-            });
-          });
-        }
-      });
+  orderedRows.forEach(item => {
+    const 옵션가 = item.판매가 - 대표.판매가;
+    if (!isValidOptionPrice(대표정가, 옵션가)) return;
+    const nm = (item===대표 && item["1번 상품명"]!==item.상품명)
+      ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}`
+      : item.상품명;
+    const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+    const szs  = expandSizes(item.사이즈);
+    cols.forEach(col=>{
+      if (!szs.length) {
+        data.push({ ...applyOptionMode(nm,col,null,nm,""), 옵션가, 재고수량:99999, 관리코드:item.상품명, 사용여부:"Y" });
+      } else {
+        szs.forEach(sz=>{
+          data.push({ ...applyOptionMode(nm,col,sz,nm,""), 옵션가, 재고수량:99999, 관리코드:item.상품명, 사용여부:"Y" });
+        });
+      }
     });
+  });
 
   // 2) 중복 제거
   {
@@ -784,15 +781,38 @@ function expandSizes(sizeStr) {
 document.getElementById("inputFile").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
+
   const reader = new FileReader();
   reader.onload = function(evt) {
+    // 1) 워크북 파싱
     const data = new Uint8Array(evt.target.result);
     const workbook = XLSX.read(data, { type: "array" });
-    // …기존 JSON 변환 & addRow 루프…
-    // 여기서 원본 순서 저장(originalRows)도 필요하다면!
+    const sheetName = workbook.SheetNames.find(name =>
+      name.includes("상품") || name.includes("옵션")
+    ) || workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) return alert("상품옵션 시트를 찾을 수 없습니다.");
+
+    // 2) JSON 변환 → 테이블 초기화 → addRow 반복
+    const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    clearTable();
+    json.forEach(row => addRow({
+      상품명: row["상품명"],
+      판매가: row["판매가"],
+      색상: row["색상"],
+      사이즈: row["사이즈"],
+      ["1번 상품명"]: row["1번 상품명"],
+      품절된조합: row["품절된 조합"] || '',
+      제외: row["제외"] === 'Y' || row["제외"] === true
+    }));
+
+    // 3) 테이블이 채워진 뒤에 originalData에 저장
+    originalData = getDataFromTable();
   };
+
   reader.readAsArrayBuffer(file);
 });
+    
 
 // 3) Sortable + MultiDrag 마운트
 Sortable.mount(SortableMultiDrag);
