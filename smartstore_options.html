@@ -249,16 +249,17 @@
   let originalData = [];
     
       // 플러그인 마운트
-    Sortable.mount(SortableMultiDrag);
+  Sortable.mount(SortableMultiDrag.default);
+
   document.addEventListener('DOMContentLoaded', () => {
     Sortable.create(
       document.querySelector('#inputTable tbody'),
       {
         animation: 150,
         handle: 'td',
-        multiDrag: true,       // 멀티 드래그 ON
+        multiDrag: true,
         selectedClass: 'selected',
-        multiDragKey: 'ctrl'   // Ctrl+클릭으로 다중 선택
+        multiDragKey: 'ctrl'
       }
     );
   });
