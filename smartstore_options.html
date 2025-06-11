@@ -288,6 +288,37 @@
       };
       reader.readAsArrayBuffer(file);
     });
+      // 네이버 옵션가 유효성 검사
+  function isValidOptionPrice(basePrice, diff) {
+    if (basePrice < 2000) return diff >= 0 && diff <= basePrice;
+    if (basePrice < 10000) return diff >= -basePrice * 0.5 && diff <= basePrice;
+    return diff >= -basePrice * 0.5 && diff <= basePrice * 0.5;
+  }
+
+  // 할인률 기준 원가 계산
+  function calculateOriginalPrice(salePrice, discountRate) {
+    const raw = salePrice / (1 - discountRate / 100);
+    return Math.round(raw / 100) * 100;
+  }
+
+  // 옵션 문자열 → 배열
+  function parseOptions(str) {
+    if (!str) return [];
+    return str.toString().split(/[,/]/).map(s => s.trim()).filter(Boolean);
+  }
+
+  // 사이즈 expand (예: "230~240" → [230,235,240])
+  function expandSizes(sizeStr) {
+    if (!sizeStr) return [];
+    if (/[~,／]/.test(sizeStr)) {
+      const [start, end] = sizeStr.split(/~|／/).map(n=>parseInt(n,10));
+      const arr = [];
+      for (let s = start; s <= end; s += 5) arr.push(s.toString());
+      return arr;
+    }
+    return sizeStr.split(/[,/]/).map(s=>s.trim()).filter(Boolean);
+  }
+    
 // 대표상품 기준 엑셀 다운로드
  function downloadRepresentative() {
   const current = getDataFromTable().filter(r => !r.제외);
