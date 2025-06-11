@@ -253,15 +253,16 @@
       // 플러그인 마운트
   Sortable.mount(Sortable.MultiDrag);
 
-  document.addEventListener('DOMContentLoaded', () => {
-    Sortable.create(document.querySelector('#inputTable tbody'), {
-      animation: 150,
-      handle: 'td',
-      multiDrag: true,
-      selectedClass: 'selected',
-      multiDragKey: 'ctrl'
-    });
+document.addEventListener('DOMContentLoaded', () => {
+  Sortable.create(document.querySelector('#inputTable tbody'), {
+    animation: 150,
+    handle: 'td',
+    plugins: [Sortable.MultiDrag],   // ★ 여기에 플러그인 추가
+    multiDrag: true,
+    selectedClass: 'selected',
+    multiDragKey: 'ctrl'
   });
+});
 
   // 옵션가 유효성 검사 함수 (네이버 규정 반영)
 function isValidOptionPrice(basePrice, diff) {
