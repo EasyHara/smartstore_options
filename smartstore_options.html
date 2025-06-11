@@ -6,9 +6,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <!-- 반드시 Sortable 본체를 먼저 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <!-- 그 다음에 MultiDrag 플러그인을 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
 
   <style>
@@ -253,7 +251,7 @@
       // 플러그인 마운트
   Sortable.mount(Sortable.MultiDrag);
 
-  document.addEventListener('DOMContentLoaded', () => {
+  , () => {
     Sortable.create(document.querySelector('#inputTable tbody'), {
       animation: 150,
       handle: 'td',
@@ -816,17 +814,19 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
 });
     
 
-// 3) Sortable + MultiDrag 마운트
-Sortable.mount(Sortable.MultiDrag);
-document.addEventListener('DOMContentLoaded', () => {
-  Sortable.create(document.querySelector('#inputTable tbody'), {
-    animation: 150,
-    handle: 'td',
-    multiDrag: true,
-    selectedClass: 'selected',
-    multiDragKey: 'ctrl'
+  // 1) 플러그인 UMD 전역 변수로 마운트
+  Sortable.mount(SortableMultiDrag);
+
+  // 2) 테이블 드래그 초기화 (한 번만)
+  document.addEventListener('DOMContentLoaded', () => {
+    Sortable.create(document.querySelector('#inputTable tbody'), {
+      animation: 150,
+      handle: 'td',
+      multiDrag: true,
+      selectedClass: 'selected',
+      multiDragKey: 'ctrl'
+    });
   });
-});
 
   </script>
 </body>
