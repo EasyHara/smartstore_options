@@ -235,6 +235,24 @@ function onRowClick(e) {
         inputs[8].checked ? 'Y' : ''             // 제외(Y/빈문자)
       ];
     });
+// 행 추가 + 클릭 이벤트 바인딩
+function addRow(data = {}) {
+  const tbody = document.querySelector('#inputTable tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><input type="checkbox" class="to-move"></td>
+    <td><input type="radio" name="대표"></td>
+    <td><input type="text" value="${data.상품명||''}"></td>
+    <td><input type="number" value="${data.판매가||''}"></td>
+    <td><input type="text" value="${data.색상||''}"></td>
+    <td><input type="text" value="${data.사이즈||''}"></td>
+    <td><input type="text" value="${data['1번 상품명']||''}"></td>
+    <td><input type="text" value="${data.품절된조합||''}"></td>
+    <td><input type="checkbox" ${data.제외?'checked':''}></td>
+  `;
+  row.addEventListener('click', onRowClick);
+  tbody.appendChild(row);
+}
 
     // 엑셀 생성
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -870,9 +888,7 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
 
   reader.readAsArrayBuffer(file);
 });
-  //선택된 체크박스 내용을 위아래로 전환
-    function moveSelectedUp() {
-  const tbody = document.querySelector("#inputTable tbody");
+
   // 모든 행을 배열로, 위쪽부터 순회하며
   Array.from(tbody.querySelectorAll("tr")).forEach(row => {
     const cb = row.querySelector(".to-move");
@@ -880,19 +896,6 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
     const prev = row.previousElementSibling;
     if (prev) tbody.insertBefore(row, prev);
   });
-}
-
-function moveSelectedDown() {
-  const tbody = document.querySelector("#inputTable tbody");
-  // 아래에서부터 순회해야 순서 꼬이지 않음
-  Array.from(tbody.querySelectorAll("tr")).reverse().forEach(row => {
-    const cb = row.querySelector(".to-move");
-    if (!cb || !cb.checked) return;
-    const next = row.nextElementSibling;
-    if (next) tbody.insertBefore(next, row);
-  });
-}
-
 
   </script>
 </body>
