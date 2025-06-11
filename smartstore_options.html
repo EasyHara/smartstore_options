@@ -298,15 +298,15 @@ function clearTable() {
 
     // 선택된 행을 위로/아래로 이동
     function moveSelectedUp() {
-      const tbody = document.querySelector('#inputTable tbody');
-      Array.from(tbody.querySelectorAll('tr')).forEach(row => {
-        const cb = row.querySelector('.to-move');
-        if (cb && cb.checked) {
-          const prev = row.previousElementSibling;
-          if (prev) tbody.insertBefore(row, prev);
-        }
-      });
-    }
+  const tbody = document.querySelector('#inputTable tbody');
+  // 모든 행을 배열로, 위쪽부터 순회하며
+  Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+    const cb = row.querySelector('.to-move');
+    if (!cb || !cb.checked) return;
+    const prev = row.previousElementSibling;
+    if (prev) tbody.insertBefore(row, prev);
+  });
+}
     function moveSelectedDown() {
       const tbody = document.querySelector('#inputTable tbody');
       Array.from(tbody.querySelectorAll('tr')).reverse().forEach(row => {
@@ -320,19 +320,19 @@ function clearTable() {
     // 선택된 행을 맨 위로 이동
 function moveSelectedToTop() {
   const tbody = document.querySelector('#inputTable tbody');
-  // 선택된 tr들을 배열로, 위→아래 순서로 순회
+  // 체크된 행들을 위→아래 순서로 찾아서
   Array.from(tbody.querySelectorAll('tr')).forEach(row => {
     const cb = row.querySelector('.to-move');
     if (cb && cb.checked) {
+      // 맨 위(첫 번째 자식) 앞에 삽입
       tbody.insertBefore(row, tbody.firstElementChild);
     }
   });
 }
-
-// 선택된 행을 맨 아래로 이동
+    // 선택된 행을 맨 아래로 이동
 function moveSelectedToBottom() {
   const tbody = document.querySelector('#inputTable tbody');
-  // 선택된 tr들을 배열로, 아래→위 순서로 순회해야 순서 꼬임 방지
+  // 체크된 행들을 아래→위 순서로 찾아서
   Array.from(tbody.querySelectorAll('tr')).reverse().forEach(row => {
     const cb = row.querySelector('.to-move');
     if (cb && cb.checked) {
