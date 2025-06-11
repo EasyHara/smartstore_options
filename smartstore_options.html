@@ -618,11 +618,10 @@ function getOptionDisplayMode() {
   } else {
     return { 제품선택: 텍스트, 색상 };
   }
-  }
+}
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
-}
-    
+
   // 쉼표 또는 슬래시로 구분된 경우
   if (sizeStr.includes(',') || sizeStr.includes('/')) {
     return sizeStr.split(/[,/]/).map(s => s.trim()).filter(Boolean);
@@ -631,9 +630,9 @@ function expandSizes(sizeStr) {
   // 범위 (예: 230~240) 처리
   const rangeMatch = sizeStr.match(/^(\d{3})~(\d{3})$/);
   if (rangeMatch) {
-    const start = parseInt(rangeMatch[1]);
-    const end = parseInt(rangeMatch[2]);
-    const step = 5;
+    const start = parseInt(rangeMatch[1], 10);
+    const end   = parseInt(rangeMatch[2], 10);
+    const step  = 5;
     const result = [];
     for (let i = start; i <= end; i += step) {
       result.push(i.toString());
@@ -643,7 +642,6 @@ function expandSizes(sizeStr) {
 
   return [sizeStr.trim()];
 }
-
   </script>
 </body>
 </html>
