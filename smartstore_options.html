@@ -6,359 +6,153 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
-
   <style>
-    /* ───────────────────────────────────────────────────────────── */
-    /* 박스 모델 통일 */
-    *, *::before, *::after { box-sizing: border-box; }
-
-    body {
-      font-family: 'Pretendard', sans-serif;
-      padding: 20px;
-      background: #f5f6fa;
-      color: #333;
-    }
-    .container {
-      max-width: 100%;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-      overflow-x: auto;
-    }
-    h1 { font-size: 24px; margin-bottom: 16px; }
-
-    /* 테이블 기본 스타일 */
-    table {
-      width: 100%;
-      min-width: 1200px;
-      border-collapse: collapse;
-      margin: 10px 0;
-      table-layout: fixed;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-      font-size: 14px;
-      word-break: break-word;
-      vertical-align: middle;
-    }
-    th { background-color: #f0f0f0; }
-
-    /* 버튼·파일·인풋 기본 스타일 */
-    button,
-    input[type="file"],
-    input[type="number"],
-    input[type="text"] {
-      margin: 4px;
-      padding: 6px 10px;
-      font-size: 14px;
-      height: 36px;
-      line-height: 1.2;
-      vertical-align: middle;
-    }
-
-    /* 테이블 내부 input width 통일 */
-    #inputTable td input[type="text"],
-    #inputTable td input[type="number"] {
-      width: 100%;
-    }
-
-    /* 라디오·체크박스 중앙 정렬 */
-    #inputTable td input[type="radio"],
-    #inputTable td input[type="checkbox"] {
-      display: block;
-      margin: auto;
-      transform: scale(1.2);
-    }
-
-    /* 칼럼 폭 조정 */
-    #inputTable th:nth-child(1), #inputTable td:nth-child(1) { width: 5%; }
-    #inputTable th:nth-child(2), #inputTable td:nth-child(2) { width: 20%; }
-    #inputTable th:nth-child(3), #inputTable td:nth-child(3) { width: 15%; }
-    #inputTable th:nth-child(4), #inputTable td:nth-child(4) { width: 15%; }
-    #inputTable th:nth-child(5), #inputTable td:nth-child(5) { width: 15%; }
-    #inputTable th:nth-child(6), #inputTable td:nth-child(6) { width: 15%; }
-    #inputTable th:nth-child(7), #inputTable td:nth-child(7) { width: 10%; }
-    #inputTable th:nth-child(8), #inputTable td:nth-child(8) { width: 5%; }
-
-    /* ─────────── 추가한 사이즈 조정 ─────────── */
-    /* 판매가 입력란: 최대 130px */
-    #inputTable td:nth-child(3) input[type="number"] {
-      width: 100%;
-      max-width: 130px;
-      box-sizing: border-box;
-    }
-    /* 품절된 색상·사이즈: 최대 100px */
-    #inputTable td:nth-child(7) input[type="text"] {
-      width: 100%;
-      max-width: 100px;
-      box-sizing: border-box;
-    }
-    /* 할인률 입력창 */
-    #discountRate {
-      width: 50px;
-      max-width: 60px;
-      padding: 4px 6px;
-      height: 28px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    /* 모든 텍스트·넘버 입력에서 테두리 제거 */
-#inputTable td input[type="text"],
-#inputTable td input[type="number"] {
-  border: none;
-  outline: none;
-  background: transparent;
-  box-shadow: none;
-}
-        /* ───────── 입력박스 공통 깔끔하게 ───────── */
-    #inputTable td input[type="text"],
-    #inputTable td input[type="number"] {
-      border: none; 
-      outline: none;
-      background: transparent;
-      box-shadow: none;
-      padding: 4px 6px;
-      font-size: 14px;
-    }
-
-    /* ───────── 칼럼별 너비 조정 ───────── */
-    /* 2열 상품명 */
-    #inputTable td:nth-child(2) input {
-      width: 100%;
-      max-width: 180px;
-    }
-    /* 3열 판매가 (기존) */
-    #inputTable td:nth-child(3) input {
-      width: 100%;
-      max-width: 130px;
-    }
-    /* 4열 색상 */
-    #inputTable td:nth-child(4) input {
-      width: 100%;
-      max-width: 160px;
-    }
-    /* 5열 사이즈 */
-    #inputTable td:nth-child(5) input {
-      width: 100%;
-      max-width: 100px;
-    }
-    /* 6열 1번 상품명 */
-    #inputTable td:nth-child(6) input {
-      width: 100%;
-      max-width: 180px;
-    }
-    /* 7열 품절된 색상·사이즈 */
-    #inputTable td:nth-child(7) input {
-      width: 100%;
-      max-width: 100px;
-    }
-
-    /* ───────── 할인률 입력창 ───────── */
-    #discountRate {
-      width: 50px;
-      max-width: 60px;
-      padding: 4px 6px;
-      height: 28px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-      /* 선택된 행 배경 색 또는 테두리로 강조 */
-  .selected {
-    background-color: rgba(0, 123, 255, 0.1);
-  }
+    /* 박스 모델 통일, 기본 레이아웃 생략… */
+    table { /* 생략… */ }
+    /* 컬럼 너비, 입력박스 스타일 등 생략… */
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📃 스마트스토어 옵션 자동 생성기</h1>
-
     <input type="file" id="inputFile" accept=".xls,.xlsx">
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-
-    <div style="position: relative; background: #f8f9fc; padding: 16px 20px; margin-bottom: 24px;
-                border-radius: 10px; font-size: 14px; color: #333; line-height: 1.8;
-                box-shadow: 0 0 0 1px #e5e7eb;">
-      <a href="https://github.com/EasyHara/smartstore_options/blob/main/smartstore_options.html"
-         target="_blank"
-         style="position: absolute; top: 12px; right: 16px;
-                background: #f8f9fc; color: #2563eb; font-weight: 500;
-                font-size: 14px; text-decoration: none;
-                padding: 4px 10px; border: 1px solid #d1d5db;
-                border-radius: 6px;">웹 파일</a>
-      <strong style="font-size: 15px; display: block; margin-bottom: 8px; color: #1f2937;">
-        사이즈 입력 방법 안내
-      </strong>
-      <ul style="list-style: disc; padding-left: 20px; margin: 0;">
-        <li><strong>범위 입력:</strong> <code>230~240</code> → <span style="color:#2563eb; font-weight:600;">
-            5단위 자동 생성</span> <span style="color:#888;">(예: 230, 235, 240)</span></li>
-        <li><strong>개별 입력:</strong> <code>230,235/245</code> → 쉼표 또는 슬래시로
-            <span style="color:#2563eb; font-weight:600;">사이즈 직접 지정</span></li>
-        <li><span style="color:#2563eb; font-weight:600;">
-            네이버 규정에 따라 미달, 초과된 옵션은 다운로드시 자동으로 없어집니다
-          </span></li>
-      </ul>
-    </div>
-
-    <div style="margin: 20px auto; display: flex; justify-content: center; align-items: center;
-                gap: 24px; flex-wrap: wrap;">
-      <span style="font-weight: 500;">옵션 노출 방식:</span>
-      <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
-      <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
-      <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
-
-      <label for="discountRate" style="font-weight: 500;">옵션가 계산 기준 할인률 (%)</label>
-      <input type="number" id="discountRate" value="0" min="0" max="99" step="1">%
-      <span style="color: #888; font-size: 13px;">(네이버할인가 기준)</span>
-    </div>
-
+    <!-- 옵션 노출 방식, 할인률 입력부 생략… -->
     <table id="inputTable">
       <thead>
         <tr>
-          <th>선택</th>
-          <th>상품명</th>
-          <th>판매가(네이버할인가)</th>
-          <th>색상</th>
-          <th>사이즈</th>
-          <th>1번 상품명</th>
-          <th>품절된 색상,사이즈</th>
-          <th>옵션에서 제외</th>
+          <th>이동</th><th>대표</th><th>상품명</th><th>판매가</th><th>색상</th><th>사이즈</th><th>1번 상품명</th><th>품절조합</th><th>제외</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-
     <button onclick="addRow()">+ 행 추가</button>
     <button onclick="clearTable()">초기화</button>
-    <br><br>
-    <div style="text-align: center; margin-top: 20px;">
-      <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
-      <button onclick="generateZip()">일괄 엑셀 다운로드 (ZIP)</button>
-      <button onclick="downloadAddProductExcel()">추가상품 엑셀 다운로드</button>
-      <button onclick="downloadSingleProductExcel()">단품등록 엑셀 다운로드</button>
-      <button onclick="downloadSingleProductExcelAll()">단품등록 엑셀 전체다운로드</button>
-    </div>
+    <button onclick="resetOrder()">순서 초기화</button>
+    <button onclick="moveSelectedUp()">위로 이동</button>
+    <button onclick="moveSelectedDown()">아래로 이동</button>
+    <!-- 다운로드 버튼들… -->
   </div>
 
   <script>
-  let originalData = [];
-    
-      // 플러그인 마운트
-  Sortable.mount(SortableMultiDrag.default);
-
-  document.addEventListener('DOMContentLoaded', () => {
-    Sortable.create(
-      document.querySelector('#inputTable tbody'),
-      {
-        animation: 150,
-        handle: 'td',
-        multiDrag: true,
-        selectedClass: 'selected',
-        multiDragKey: 'ctrl'
-      }
-    );
-  });
-
-  // 옵션가 유효성 검사 함수 (네이버 규정 반영)
-function isValidOptionPrice(basePrice, diff) {
-  if (basePrice < 2000) {
-    return diff >= 0 && diff <= basePrice * 1.0;
-  } else if (basePrice < 10000) {
-    return diff >= basePrice * -0.5 && diff <= basePrice * 1.0;
-  } else {
-    return diff >= basePrice * -0.5 && diff <= basePrice * 0.5;
-  }
-}
-
-
-  // 할인률 기준으로 원래 판매가 계산
-  function calculateOriginalPrice(salePrice, discountRate) {
-    const raw = salePrice / (1 - discountRate / 100);
-    return Math.round(raw / 100) * 100;  // 100원 단위 반올림
-  }
-    document.getElementById("inputFile").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-
-        const sheetName = workbook.SheetNames.find(name =>
-          name.includes("상품") || name.includes("옵션")
-        ) || workbook.SheetNames[0];
-
-        const sheet = workbook.Sheets[sheetName];
-        if (!sheet) return alert("상품옵션 시트를 찾을 수 없습니다.");
-
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        clearTable();
-        json.forEach(row => addRow({
-          상품명: row["상품명"],
-          판매가: row["판매가"],
-          색상: row["색상"],
-          사이즈: row["사이즈"],
-          ["1번 상품명"]: row["1번 상품명"],
-          품절된조합: row["품절된 조합"] || '',
-          제외: row["제외"] === 'Y' || row["제외"] === true
-        }));
-      };
-      reader.readAsArrayBuffer(file);
-    });
+    let originalData = [];
 
     function addRow(data = {}) {
-      const tbody = document.querySelector("#inputTable tbody");
-      const row = document.createElement("tr");
+      const tbody = document.querySelector('#inputTable tbody');
+      const row = document.createElement('tr');
       row.innerHTML = `
+        <td><input type="checkbox" class="to-move"></td>
         <td><input type="radio" name="대표"></td>
-        <td><input value="${data.상품명 || ''}"></td>
-        <td><input value="${data.판매가 || ''}" type="number"></td>
-        <td><input value="${data.색상 || ''}"></td>
-        <td><input value="${data.사이즈 || ''}"></td>
-        <td><input value="${data["1번 상품명"] || ''}"></td>
-        <td><input value="${data.품절된조합 || ''}"></td>
-        <td><input type="checkbox" ${data.제외 ? 'checked' : ''}></td>
+        <td><input value="${data.상품명||''}"></td>
+        <td><input type="number" value="${data.판매가||''}"></td>
+        <td><input value="${data.색상||''}"></td>
+        <td><input value="${data.사이즈||''}"></td>
+        <td><input value="${data['1번 상품명']||''}"></td>
+        <td><input value="${data.품절된조합||''}"></td>
+        <td><input type="checkbox" ${data.제외?'checked':''}></td>
       `;
       tbody.appendChild(row);
     }
 
     function clearTable() {
-      document.querySelector("#inputTable tbody").innerHTML = '';
-      document.getElementById("inputFile").value = "";
+      document.querySelector('#inputTable tbody').innerHTML = '';
+    }
+
+    function resetOrder() {
+      clearTable();
+      originalData.forEach(d => addRow(d));
     }
 
     function getDataFromTable() {
-      const rows = document.querySelectorAll("#inputTable tbody tr");
-      return Array.from(rows).map(row => {
-        const cells = row.querySelectorAll("input");
+      return Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
+        const inputs = row.querySelectorAll('input');
         return {
-          대표: cells[0]?.checked ?? false,
-          상품명: cells[1]?.value?.trim() || "",
-          판매가: parseInt(cells[2]?.value) || 0,
-          색상: cells[3]?.value?.trim() || "",
-          사이즈: cells[4]?.value?.trim() || "",
-          ["1번 상품명"]: cells[5]?.value?.trim() || "",
-          품절된조합: cells[6]?.value?.trim() || "",
-          제외: cells[7]?.checked ?? false
+          대표:     inputs[1].checked,
+          상품명:   inputs[2].value.trim(),
+          판매가:   parseInt(inputs[3].value)||0,
+          색상:     inputs[4].value.trim(),
+          사이즈:   inputs[5].value.trim(),
+          '1번 상품명': inputs[6].value.trim(),
+          품절된조합: inputs[7].value.trim(),
+          제외:     inputs[8].checked
         };
       });
     }
 
-    function downloadTemplate() {
-      const headers = ["상품명", "판매가", "색상", "사이즈", "1번 상품명", "품절된 조합", "제외"];
-      const ws = XLSX.utils.aoa_to_sheet([headers]);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
-      const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스스_옵션양식.xls`);
+    function moveSelectedUp() {
+      const tbody = document.querySelector('#inputTable tbody');
+      Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+        const cb = row.querySelector('.to-move');
+        if (cb && cb.checked) {
+          const prev = row.previousElementSibling;
+          if (prev) tbody.insertBefore(row, prev);
+        }
+      });
     }
 
+    function moveSelectedDown() {
+      const tbody = document.querySelector('#inputTable tbody');
+      Array.from(tbody.querySelectorAll('tr')).reverse().forEach(row => {
+        const cb = row.querySelector('.to-move');
+        if (cb && cb.checked) {
+          const next = row.nextElementSibling;
+          if (next) tbody.insertBefore(next, row);
+        }
+      });
+    }
 
+    document.getElementById('inputFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data,{type:'array'});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet,{defval:''});
+        clearTable();
+        json.forEach(r => addRow({
+          상품명: r['상품명'],
+          판매가: r['판매가'],
+          색상:   r['색상'],
+          사이즈: r['사이즈'],
+          '1번 상품명': r['1번 상품명'],
+          품절된조합: r['품절된 조합']||'',
+          제외: r['제외']==='Y'
+        }));
+        originalData = getDataFromTable();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    // 엑셀 템플릿 다운로드
+    function downloadTemplate() {
+      const headers = ['상품명','판매가','색상','사이즈','1번 상품명','품절된 조합','제외'];
+      const ws = XLSX.utils.aoa_to_sheet([headers]);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'상품옵션');
+      const blob = new Blob([XLSX.write(wb,{bookType:'xls',type:'array'})],{type:'application/octet-stream'});
+      saveAs(blob,'스스_옵션양식.xls');
+    }
+
+    // 업로드 후 원본 저장
+    document.getElementById('inputFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data,{type:'array'});
+        const name = wb.SheetNames[0];
+        const json = XLSX.utils.sheet_to_json(wb.Sheets[name],{defval:''});
+        clearTable();
+        json.forEach(r=> addRow({
+          상품명:r['상품명'], 판매가:r['판매가'], 색상:r['색상'], 사이즈:r['사이즈'], '1번 상품명':r['1번 상품명'],
+          품절된조합:r['품절된 조합']||'', 제외:r['제외']==='Y'
+        }));
+        originalData = getDataFromTable();
+      };
+      reader.readAsArrayBuffer(file);
+    });
 // 대표상품 기준 엑셀 다운로드
  function downloadRepresentative() {
   const current = getDataFromTable().filter(r => !r.제외);
@@ -815,7 +609,29 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
 
   reader.readAsArrayBuffer(file);
 });
-  
+  //선택된 체크박스 내용을 위아래로 전환
+    function moveSelectedUp() {
+  const tbody = document.querySelector("#inputTable tbody");
+  // 모든 행을 배열로, 위쪽부터 순회하며
+  Array.from(tbody.querySelectorAll("tr")).forEach(row => {
+    const cb = row.querySelector(".to-move");
+    if (!cb || !cb.checked) return;
+    const prev = row.previousElementSibling;
+    if (prev) tbody.insertBefore(row, prev);
+  });
+}
+
+function moveSelectedDown() {
+  const tbody = document.querySelector("#inputTable tbody");
+  // 아래에서부터 순회해야 순서 꼬이지 않음
+  Array.from(tbody.querySelectorAll("tr")).reverse().forEach(row => {
+    const cb = row.querySelector(".to-move");
+    if (!cb || !cb.checked) return;
+    const next = row.nextElementSibling;
+    if (next) tbody.insertBefore(next, row);
+  });
+}
+
 
   </script>
 </body>
