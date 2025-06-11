@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
   <style>
     /* ───────────────────────────────────────────────────────────── */
     /* 박스 모델 통일 */
@@ -189,11 +190,26 @@
   </div>
 
   <script>
-      // 1) tbody 에만 드래그 순서 변경 활성화
-  Sortable.create(document.querySelector('#inputTable tbody'), {
-    animation: 150,
-    handle: 'td',    // 셀 어디든 잡고 드래그
-  });
+
+// 1) MultiDrag 플러그인 마운트
+Sortable.mount(Sortable.MultiDrag);
+
+// 2) tbody 에 멀티 드래그 활성화
+Sortable.create(document.querySelector('#inputTable tbody'), {
+  animation: 150,
+  handle: 'td',
+  multiDrag: true,
+  selectedClass: 'selected',
+  multiDragKey: 'ctrl',
+  fallbackTolerance: 3,
+});
+    // 3) 클릭 핸들러 정의
+function onRowClick(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  if (e.ctrlKey || e.metaKey) {
+    this.classList.toggle('selected');
+  }
+}
 
   // 2) 테이블 데이터를 스스_옵션양식 양식으로 엑셀 다운로드
   function downloadOrderedTemplate() {
@@ -226,22 +242,38 @@
     let originalData = [];
 
     // 행 추가
-    function addRow(data = {}) {
-      const tbody = document.querySelector('#inputTable tbody');
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td><input type="checkbox" class="to-move"></td>
-        <td><input type="radio" name="대표"></td>
-        <td><input value="${data.상품명||''}"></td>
-        <td><input type="number" value="${data.판매가||''}"></td>
-        <td><input value="${data.색상||''}"></td>
-        <td><input value="${data.사이즈||''}"></td>
-        <td><input value="${data['1번 상품명']||''}"></td>
-        <td><input value="${data.품절된조합||''}"></td>
-        <td><input type="checkbox" ${data.제외?'checked':''}></td>
-      `;
-      tbody.appendChild(row);
-    }
+function addRow(data = {}) {
+  const tbody = document.querySelector('#inputTable tbody');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td><input type="checkbox" class="to-move"></td>
+    <td><input type="radio" name="대표"></td>
+    <td><input value="${data.상품명||''}"></td>
+    <td><input type="number" value="${data.판매가||''}"></td>
+    <td><input value="${data.색상||''}"></td>
+    <td><input value="${data.사이즈||''}"></td>
+    <td><input value="${data['1번 상품명']||''}"></td>
+    <td><input value="${data.품절된조합||''}"></td>
+    <td><input type="checkbox" ${data.제외?'checked':''}></td>
+  `;
+  tbody.appendChild(row);
+  row.addEventListener('click', onRowClick);
+}
+
+    // tr 클릭 시 Ctrl(또는 Cmd) 키가 눌려있으면 selected 클래스 토글
+function enableRowSelection() {
+  document.querySelectorAll('#inputTable tbody tr').forEach(row => {
+    row.addEventListener('click', function(e) {
+      // 입력창이나 버튼 클릭은 제외
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      if (e.ctrlKey || e.metaKey) {
+        this.classList.toggle('selected');
+      }
+    });
+  });
+}
+    // 기존 addRow 호출 직후, 또는 엑셀 로드 완료 후 호출
+enableRowSelection();
 
     // 테이블 초기화
 function clearTable() {
