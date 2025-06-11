@@ -250,16 +250,18 @@
     
       // 플러그인 마운트
     Sortable.mount(SortableMultiDrag);
-
-    document.addEventListener('DOMContentLoaded', () => {
-      Sortable.create(document.querySelector('#inputTable tbody'), {
+  document.addEventListener('DOMContentLoaded', () => {
+    Sortable.create(
+      document.querySelector('#inputTable tbody'),
+      {
         animation: 150,
         handle: 'td',
-        multiDrag: true,          // 멀티 드래그 활성화
+        multiDrag: true,       // 멀티 드래그 ON
         selectedClass: 'selected',
-        multiDragKey: 'ctrl'      // Ctrl+클릭으로 여러 행 선택
-      });
-    });
+        multiDragKey: 'ctrl'   // Ctrl+클릭으로 다중 선택
+      }
+    );
+  });
 
   // 옵션가 유효성 검사 함수 (네이버 규정 반영)
 function isValidOptionPrice(basePrice, diff) {
