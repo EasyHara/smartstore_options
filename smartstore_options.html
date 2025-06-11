@@ -396,11 +396,11 @@ function downloadAddProductExcel() {
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
   const 대표 = rows.find(r => r.대표) || rows[0];
-  const 대표상품명 = 대표.상품명;
-  const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
 
+  // 1) 우선 아이템별 데이터 수집
+  const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
+  let data = [];
   let index = 1;
-  const data = [];
 
   items.forEach(item => {
     const 순번 = index < 10 ? `0${index}` : `${index}`;
@@ -422,7 +422,7 @@ function downloadAddProductExcel() {
         사이즈목록.forEach(size => {
           data.push({
             추가상품명: "제품선택",
-            추가상품값: `${순번}) ${item.상품명} / ${color}`.trim(),
+            추가상품값: `${순번}) ${item.상품명} / ${color}${size}`.trim(), // 사이즈도 key에 포함
             추가상품가: item.판매가,
             재고수량: 99999,
             사용여부: "Y",
@@ -435,14 +435,24 @@ function downloadAddProductExcel() {
     index++;
   });
 
+  // 2) 중복 제거: 추가상품값(=순번) 기준으로 한 번만 남기기
+  {
+    const seen = new Set();
+    data = data.filter(row => {
+      if (seen.has(row.추가상품값)) return false;
+      seen.add(row.추가상품값);
+      return true;
+    });
+  }
+
+  // 3) 시트 생성 및 다운로드
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "추가상품");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  const safeName = (대표상품명 || "추가상품").replace(/[\\/:*?"<>|]/g, "").trim();
+  const safeName = 대표.상품명.replace(/[\\/:*?"<>|]/g, "").trim();
   saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_${safeName}.xls`);
 }
-
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
