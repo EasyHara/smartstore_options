@@ -6,6 +6,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
   <style>
     /* ───────────────────────────────────────────────────────────── */
     /* 박스 모델 통일 */
@@ -105,6 +107,14 @@
       font-size: 14px;
       box-sizing: border-box;
     }
+    /* 모든 텍스트·넘버 입력에서 테두리 제거 */
+#inputTable td input[type="text"],
+#inputTable td input[type="number"] {
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
   </style>
 </head>
 <body>
@@ -698,6 +708,17 @@ function expandSizes(sizeStr) {
 
   return [sizeStr.trim()];
 }
+    document.addEventListener('DOMContentLoaded', () => {
+  Sortable.create(document.querySelector('#inputTable tbody'), {
+    handle: 'td',        // 테이블 셀 어느 곳을 잡아도 드래그
+    animation: 150,      // 부드러운 애니메이션
+    onEnd: () => {
+      // 순서가 바뀔 때 필요하면 추가 로직
+      console.log('순서 변경 완료');
+    }
+  });
+});
+
   </script>
 </body>
 </html>
