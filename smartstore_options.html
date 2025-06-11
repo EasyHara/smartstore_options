@@ -7,6 +7,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
 
   <style>
     /* ───────────────────────────────────────────────────────────── */
@@ -167,6 +169,10 @@
       font-size: 14px;
       box-sizing: border-box;
     }
+      /* 선택된 행 배경 색 또는 테두리로 강조 */
+  .selected {
+    background-color: rgba(0, 123, 255, 0.1);
+  }
   </style>
 </head>
 <body>
@@ -241,6 +247,19 @@
   </div>
 
   <script>
+      // 플러그인 마운트
+  Sortable.mount(SortableMultiDrag);
+
+  // 테이블 바디에 Sortable 적용
+  const tbody = document.querySelector('#inputTable tbody');
+  Sortable.create(tbody, {
+    animation: 150,
+    handle: 'td',          // 셀 어디든 잡고 드래그
+    multiDrag: true,       // 멀티 드래그 활성화
+    selectedClass: 'selected',
+    multiDragKey: 'ctrl',  // Ctrl+클릭으로 선택 (Shift나 alt도 가능)
+    fallbackTolerance: 3    // 드래그 시작 기준 민감도
+  });
   // 옵션가 유효성 검사 함수 (네이버 규정 반영)
 function isValidOptionPrice(basePrice, diff) {
   if (basePrice < 2000) {
