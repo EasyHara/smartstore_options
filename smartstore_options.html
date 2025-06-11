@@ -7,7 +7,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
 
   <style>
@@ -756,37 +755,54 @@ function getOptionDisplayMode() {
     return { 제품선택: 텍스트, 색상 };
   }
 }
+// 1) expandSizes 정의 (이 함수가 끝나면 바로 바로 밑에 이벤트 리스너)
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
 
-  // 쉼표 또는 슬래시로 구분된 경우
+  // 쉼표 또는 슬래시 구분
   if (sizeStr.includes(',') || sizeStr.includes('/')) {
     return sizeStr.split(/[,/]/).map(s => s.trim()).filter(Boolean);
   }
 
-  // 범위 (예: 230~240) 처리
+  // 범위 (예: "230~240")
   const rangeMatch = sizeStr.match(/^(\d{3})~(\d{3})$/);
   if (rangeMatch) {
     const start = parseInt(rangeMatch[1], 10);
     const end   = parseInt(rangeMatch[2], 10);
-    const step  = 5;
     const result = [];
-    for (let i = start; i <= end; i += step) {
+    for (let i = start; i <= end; i += 5) {
       result.push(i.toString());
     }
     return result;
   }
 
+  // 단일값
   return [sizeStr.trim()];
-}
-    document.addEventListener('DOMContentLoaded', () => {
+}  // <-- 여기 닫는 중괄호 반드시!
+
+// 2) 파일 업로드 리스너
+document.getElementById("inputFile").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const data = new Uint8Array(evt.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    // …기존 JSON 변환 & addRow 루프…
+    // 여기서 원본 순서 저장(originalRows)도 필요하다면!
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// 3) Sortable + MultiDrag 마운트
+Sortable.mount(SortableMultiDrag);
+document.addEventListener('DOMContentLoaded', () => {
   Sortable.create(document.querySelector('#inputTable tbody'), {
-    handle: 'td',        // 테이블 셀 어느 곳을 잡아도 드래그
-    animation: 150,      // 부드러운 애니메이션
-    onEnd: () => {
-      // 순서가 바뀔 때 필요하면 추가 로직
-      console.log('순서 변경 완료');
-    }
+    animation: 150,
+    handle: 'td',
+    multiDrag: true,
+    selectedClass: 'selected',
+    multiDragKey: 'ctrl'
   });
 });
 
