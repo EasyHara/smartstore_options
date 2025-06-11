@@ -889,13 +889,7 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
   reader.readAsArrayBuffer(file);
 });
 
-  // 모든 행을 배열로, 위쪽부터 순회하며
-  Array.from(tbody.querySelectorAll("tr")).forEach(row => {
-    const cb = row.querySelector(".to-move");
-    if (!cb || !cb.checked) return;
-    const prev = row.previousElementSibling;
-    if (prev) tbody.insertBefore(row, prev);
-  });
+
 
   </script>
 </body>
