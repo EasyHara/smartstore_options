@@ -621,7 +621,8 @@ function getOptionDisplayMode() {
     
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
-
+}
+    
   // 쉼표 또는 슬래시로 구분된 경우
   if (sizeStr.includes(',') || sizeStr.includes('/')) {
     return sizeStr.split(/[,/]/).map(s => s.trim()).filter(Boolean);
