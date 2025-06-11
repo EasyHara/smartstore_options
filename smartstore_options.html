@@ -115,6 +115,58 @@
   background: transparent;
   box-shadow: none;
 }
+        /* ───────── 입력박스 공통 깔끔하게 ───────── */
+    #inputTable td input[type="text"],
+    #inputTable td input[type="number"] {
+      border: none; 
+      outline: none;
+      background: transparent;
+      box-shadow: none;
+      padding: 4px 6px;
+      font-size: 14px;
+    }
+
+    /* ───────── 칼럼별 너비 조정 ───────── */
+    /* 2열 상품명 */
+    #inputTable td:nth-child(2) input {
+      width: 100%;
+      max-width: 180px;
+    }
+    /* 3열 판매가 (기존) */
+    #inputTable td:nth-child(3) input {
+      width: 100%;
+      max-width: 130px;
+    }
+    /* 4열 색상 */
+    #inputTable td:nth-child(4) input {
+      width: 100%;
+      max-width: 160px;
+    }
+    /* 5열 사이즈 */
+    #inputTable td:nth-child(5) input {
+      width: 100%;
+      max-width: 100px;
+    }
+    /* 6열 1번 상품명 */
+    #inputTable td:nth-child(6) input {
+      width: 100%;
+      max-width: 180px;
+    }
+    /* 7열 품절된 색상·사이즈 */
+    #inputTable td:nth-child(7) input {
+      width: 100%;
+      max-width: 100px;
+    }
+
+    /* ───────── 할인률 입력창 ───────── */
+    #discountRate {
+      width: 50px;
+      max-width: 60px;
+      padding: 4px 6px;
+      height: 28px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
