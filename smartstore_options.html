@@ -6,7 +6,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <!-- 반드시 Sortable 본체를 먼저 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <!-- 그 다음에 MultiDrag 플러그인을 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
 
   <style>
@@ -249,7 +251,7 @@
   let originalData = [];
     
       // 플러그인 마운트
-  Sortable.mount(Sortable.MultiDrag);
+  Sortable.mount(SortableMultiDrag);
 
   document.addEventListener('DOMContentLoaded', () => {
     Sortable.create(document.querySelector('#inputTable tbody'), {
