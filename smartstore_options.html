@@ -7,8 +7,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableMultiDrag.min.js"></script>
   <style>
     /* ───────────────────────────────────────────────────────────── */
     /* 박스 모델 통일 */
@@ -190,26 +190,43 @@
   </div>
 
   <script>
-  // 플러그인을 인스턴스로 생성해서 마운트
-  Sortable.mount(new MultiDrag());
-  
-  // 이제 한 번만 create 해주시면 됩니다
+  // 1) 올바른 플러그인 인스턴스 생성 및 마운트
+  Sortable.mount(new SortableMultiDrag());
+
+  // 2) 단 한 번만 create
   Sortable.create(document.querySelector('#inputTable tbody'), {
     animation: 150,
     handle: 'td',
-    multiDrag: true,
-    selectedClass: 'selected',
-    multiDragKey: 'ctrl',
-    fallbackTolerance: 3,
+    multiDrag: true,            // 멀티 드래그 활성화
+    selectedClass: 'selected',  // 선택된 항목에 적용할 클래스
+    multiDragKey: 'ctrl',       // Ctrl(또는 Cmd) 키로 복수 선택
+    fallbackTolerance: 3
   });
-    // 3) 클릭 핸들러 정의
-function onRowClick(e) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-  if (e.ctrlKey || e.metaKey) {
-    this.classList.toggle('selected');
-  }
-}
 
+  // 3) 클릭 핸들러
+  function onRowClick(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    if (e.ctrlKey || e.metaKey) this.classList.toggle('selected');
+  }
+
+  // 4) addRow 에 이벤트 바인딩
+  function addRow(data = {}) {
+    const tbody = document.querySelector('#inputTable tbody');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td><input type="checkbox" class="to-move"></td>
+      <td><input type="radio" name="대표"></td>
+      <td><input value="${data.상품명||''}"></td>
+      <td><input type="number" value="${data.판매가||''}"></td>
+      <td><input value="${data.색상||''}"></td>
+      <td><input value="${data.사이즈||''}"></td>
+      <td><input value="${data['1번 상품명']||''}"></td>
+      <td><input value="${data.품절된조합||''}"></td>
+      <td><input type="checkbox" ${data.제외?'checked':''}></td>
+    `;
+    row.addEventListener('click', onRowClick);
+    tbody.appendChild(row);
+  }
   // 2) 테이블 데이터를 스스_옵션양식 양식으로 엑셀 다운로드
   function downloadOrderedTemplate() {
     // 헤더 (스스_옵션양식과 동일)
