@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -201,7 +201,15 @@
   </div>
 
   <script>
-    // 행 추가 + 클릭 이벤트 바인딩
+
+
+    // 클릭 핸들러: Ctrl/Cmd+클릭 시 selected 클래스 토글
+function onRowClick(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  if (e.ctrlKey || e.metaKey) this.classList.toggle('selected');
+}
+
+      // 행 추가 + 클릭 이벤트 바인딩
 function addRow(data = {}) {
   const tbody = document.querySelector('#inputTable tbody');
   const row = document.createElement('tr');
@@ -228,41 +236,46 @@ function addRow(data = {}) {
     multiDragKey: 'ctrl',      // Ctrl(Cmd) 키로 복수 선택
     fallbackTolerance: 3
   });
-    // 클릭 핸들러: Ctrl/Cmd+클릭 시 selected 클래스 토글
-function onRowClick(e) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-  if (e.ctrlKey || e.metaKey) this.classList.toggle('selected');
-}
+    
+// 테이블 데이터를 스스_옵션양식 양식으로 엑셀 다운로드
+function downloadOrderedTemplate() {
+  // 1) 헤더 정의 (스스_옵션양식과 동일)
+  const headers = [
+    "상품명",
+    "판매가",
+    "색상",
+    "사이즈",
+    "1번 상품명",
+    "품절된 조합",
+    "제외"
+  ];
 
+  // 2) 현재 화면에 표시된 순서대로 <tbody>의 각 <tr>을 읽어서 데이터 배열 생성
+  const data = Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
+    const inputs = row.querySelectorAll('input');
+    return [
+      inputs[2].value.trim(),                // 상품명
+      parseInt(inputs[3].value, 10) || 0,    // 판매가
+      inputs[4].value.trim(),                // 색상
+      inputs[5].value.trim(),                // 사이즈
+      inputs[6].value.trim(),                // 1번 상품명
+      inputs[7].value.trim(),                // 품절된 조합
+      inputs[8].checked ? 'Y' : ''           // 제외(Y/빈문자)
+    ];
+  });
 
-  // 2) 테이블 데이터를 스스_옵션양식 양식으로 엑셀 다운로드
-  function downloadOrderedTemplate() {
-    // 헤더 (스스_옵션양식과 동일)
-    const headers = ["상품명","판매가","색상","사이즈","1번 상품명","품절된 조합","제외"];
-    // 현재 화면의 순서대로 데이터 수집
-    const data = Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
-      const inputs = row.querySelectorAll('input');
-      return [
-        inputs[2].value.trim(),                  // 상품명
-        parseInt(inputs[3].value) || 0,          // 판매가
-        inputs[4].value.trim(),                  // 색상
-        inputs[5].value.trim(),                  // 사이즈
-        inputs[6].value.trim(),                  // 1번 상품명
-        inputs[7].value.trim(),                  // 품절된 조합
-        inputs[8].checked ? 'Y' : ''             // 제외(Y/빈문자)
-      ];
-    });
+  // 3) SheetJS로 워크시트, 워크북 생성
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
 
-    // 엑셀 생성
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
-    const blob = new Blob(
-      [XLSX.write(wb, { bookType: 'xls', type: 'array' })],
-      { type: 'application/octet-stream' }
-    );
-    saveAs(blob, '스스_옵션양식-순서반영.xls');
+  // 4) Blob으로 변환 후 FileSaver.js로 다운로드
+  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/octet-stream' });
+  saveAs(blob, '스스_옵션양식-순서반영.xls');
   }
+
+    
     let originalData = [];
 
     // 테이블 초기화
