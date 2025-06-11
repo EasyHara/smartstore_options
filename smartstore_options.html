@@ -211,31 +211,13 @@
     multiDragKey: 'ctrl',      // Ctrl(Cmd) 키로 복수 선택
     fallbackTolerance: 3
   });
+    // 클릭 핸들러: Ctrl/Cmd+클릭 시 selected 클래스 토글
+function onRowClick(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+  if (e.ctrlKey || e.metaKey) this.classList.toggle('selected');
+}
 
-  // 3) 클릭 핸들러
-  function onRowClick(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-    if (e.ctrlKey || e.metaKey) this.classList.toggle('selected');
-  }
 
-  // 4) addRow 에 이벤트 바인딩
-  function addRow(data = {}) {
-    const tbody = document.querySelector('#inputTable tbody');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td><input type="checkbox" class="to-move"></td>
-      <td><input type="radio" name="대표"></td>
-      <td><input value="${data.상품명||''}"></td>
-      <td><input type="number" value="${data.판매가||''}"></td>
-      <td><input value="${data.색상||''}"></td>
-      <td><input value="${data.사이즈||''}"></td>
-      <td><input value="${data['1번 상품명']||''}"></td>
-      <td><input value="${data.품절된조합||''}"></td>
-      <td><input type="checkbox" ${data.제외?'checked':''}></td>
-    `;
-    row.addEventListener('click', onRowClick);
-    tbody.appendChild(row);
-  }
   // 2) 테이블 데이터를 스스_옵션양식 양식으로 엑셀 다운로드
   function downloadOrderedTemplate() {
     // 헤더 (스스_옵션양식과 동일)
@@ -265,40 +247,6 @@
     saveAs(blob, '스스_옵션양식-순서반영.xls');
   }
     let originalData = [];
-
-    // 행 추가
-function addRow(data = {}) {
-  const tbody = document.querySelector('#inputTable tbody');
-  const row = document.createElement('tr');
-  row.innerHTML = `
-    <td><input type="checkbox" class="to-move"></td>
-    <td><input type="radio" name="대표"></td>
-    <td><input value="${data.상품명||''}"></td>
-    <td><input type="number" value="${data.판매가||''}"></td>
-    <td><input value="${data.색상||''}"></td>
-    <td><input value="${data.사이즈||''}"></td>
-    <td><input value="${data['1번 상품명']||''}"></td>
-    <td><input value="${data.품절된조합||''}"></td>
-    <td><input type="checkbox" ${data.제외?'checked':''}></td>
-  `;
-  tbody.appendChild(row);
-  row.addEventListener('click', onRowClick);
-}
-
-    // tr 클릭 시 Ctrl(또는 Cmd) 키가 눌려있으면 selected 클래스 토글
-function enableRowSelection() {
-  document.querySelectorAll('#inputTable tbody tr').forEach(row => {
-    row.addEventListener('click', function(e) {
-      // 입력창이나 버튼 클릭은 제외
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-      if (e.ctrlKey || e.metaKey) {
-        this.classList.toggle('selected');
-      }
-    });
-  });
-}
-    // 기존 addRow 호출 직후, 또는 엑셀 로드 완료 후 호출
-enableRowSelection();
 
     // 테이블 초기화
 function clearTable() {
@@ -427,18 +375,7 @@ function moveSelectedToBottom() {
     return str.toString().split(/[,/]/).map(s => s.trim()).filter(Boolean);
   }
 
-  // 사이즈 expand (예: "230~240" → [230,235,240])
-  function expandSizes(sizeStr) {
-    if (!sizeStr) return [];
-    if (/[~,／]/.test(sizeStr)) {
-      const [start, end] = sizeStr.split(/~|／/).map(n=>parseInt(n,10));
-      const arr = [];
-      for (let s = start; s <= end; s += 5) arr.push(s.toString());
-      return arr;
-    }
-    return sizeStr.split(/[,/]/).map(s=>s.trim()).filter(Boolean);
-  }
-    
+   
 // 대표상품 기준 엑셀 다운로드
   function downloadRepresentative() {
     const rows = getDataFromTable().filter(r => !r.제외);
@@ -896,22 +833,6 @@ function getOptionDisplayMode() {
     }
     return [sizeStr.trim()];
   }
-
-  // 범위 (예: "230~240")
-  const rangeMatch = sizeStr.match(/^(\d{3})~(\d{3})$/);
-  if (rangeMatch) {
-    const start = parseInt(rangeMatch[1], 10);
-    const end   = parseInt(rangeMatch[2], 10);
-    const result = [];
-    for (let i = start; i <= end; i += 5) {
-      result.push(i.toString());
-    }
-    return result;
-  }
-
-  // 단일값
-  return [sizeStr.trim()];
-}  // <-- 여기 닫는 중괄호 반드시!
 
 
 // 2) 파일 업로드 리스너
