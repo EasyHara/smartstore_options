@@ -534,7 +534,7 @@ function downloadRepresentative() {
   );
   saveAs(blob, `${대표.상품명}.xls`);
 } 
-// 일괄 ZIP 다운로드
+
 // 일괄 ZIP 다운로드 함수
 function generateZip() {
   // 1) 현재 화면의 순서대로, 제외된 항목은 필터링
@@ -854,32 +854,43 @@ function getOptionDisplayMode() {
   const selected = document.querySelector('input[name="optionDisplay"]:checked');
   return selected ? selected.value : "both";
 } 
-// 옵션 구성 방식 적용 함수
-  function applyOptionMode(제품명, 색상, 사이즈, 상품명, 순번) {
-    // 순번이 있을 때만 "NN) " 형태를 붙이고, 없으면 그냥 제품명만
-    const prefix = 순번 ? `${순번}) ` : "";
-    let 텍스트 = `${prefix}${제품명}`;
-  if (!색상 && !사이즈) {
-    return { 제품선택: 텍스트 };
+
+// 옵션 구성 방식 적용 함수 (텍스트 생성 → 공백/슬래시 정리 → 25자 트리밍 → 반환)
+function applyOptionMode(제품명, 색상, 사이즈, /* 상품명, */ 순번) {
+  // 1) 순번 접두사 붙이기
+  const prefix = 순번 ? `${순번}) ` : "";
+  let 텍스트 = `${prefix}${제품명}`;
+
+  // 2) 옵션 노출 모드에 따라 색상/사이즈 붙이기
+  const mode = getOptionDisplayMode();
+  if (mode === "both") {
+    if (색상) 텍스트 += ` / ${색상}`;
+    if (사이즈) 텍스트 += ` / ${사이즈}`;
+  } else if (mode === "colorOnly" && 색상) {
+    텍스트 += ` / ${색상}`;
+  } else if (mode === "sizeOnly" && 사이즈) {
+    텍스트 += ` / ${사이즈}`;
   }
-  if (getOptionDisplayMode() === "colorOnly") {
-    return { 제품선택: 텍스트, 색상 };
+
+  // 3) 공백 & 슬래시 공백 제거
+  //    ") " → ")"    그리고    " / " → "/"
+  텍스트 = 텍스트
+    .replace(/\)\s*/g, ")")
+    .replace(/\s*\/\s*/g, "/");
+
+  // 4) 25자 초과 시 자르기
+  if (텍스트.length > 25) {
+    텍스트 = 텍스트.slice(0, 25);
   }
-  if (getOptionDisplayMode() === "sizeOnly") {
-    return 사이즈
-      ? { 제품선택: 텍스트, 사이즈 }
-      : { 제품선택: 텍스트 };
-  }
-  // both
-  // 색상&사이즈 모두
-  if (색상) 텍스트 += ` / ${색상}`;
-  if (사이즈) {
-    return { 제품선택: 텍스트, 색상, 사이즈 };
-  } else {
-    return { 제품선택: 텍스트, 색상 };
-  }
+
+  // 5) 최종 반환 객체 생성
+  const result = { 제품선택: 텍스트 };
+  if (mode === "colorOnly" && 색상)     result.색상 = 색상;
+  if ((mode === "sizeOnly" || mode === "both") && 사이즈) result.사이즈 = 사이즈;
+  return result;
 }
-// 1) expandSizes 정의 (이 함수가 끝나면 바로 바로 밑에 이벤트 리스너)
+
+// 1) expandSizes 정의
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
 
@@ -903,6 +914,7 @@ function expandSizes(sizeStr) {
   // 단일값
   return [sizeStr.trim()];
 }  // <-- 여기 닫는 중괄호 반드시!
+
 
 // 2) 파일 업로드 리스너
 document.getElementById("inputFile").addEventListener("change", function(e) {
