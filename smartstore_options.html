@@ -226,81 +226,81 @@ function isValidOptionPrice(basePrice, diff) {
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
       saveAs(new Blob([wbout], { type: "application/octet-stream" }), `스스_옵션양식.xls`);
     }
-// 대표상품 기준 엑셀 다운로드
+
 // 대표상품 기준 엑셀 다운로드
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (!rows.length) return alert("출력할 데이터가 없습니다.");
 
   const 대표 = rows.find(r => r.대표) || rows[0];
-  if (!대표) return alert("대표 상품이 없습니다.");
-
   const 할인률 = parseFloat(document.getElementById("discountRate").value) || 0;
   const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
   const mode = getOptionDisplayMode();
   let data = [];
 
-  // 대표상품 맨 앞으로 정렬
-  rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0))
-      .forEach(item => {
+  // 1) 옵션 데이터 수집
+  rows.sort((a,b)=>(a===대표?-1:b===대표?1:0)).forEach(item=>{
     const 옵션가 = item.판매가 - 대표.판매가;
     if (!isValidOptionPrice(대표정가, 옵션가)) return;
 
-    const 제품명 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
-      ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}`
-      : item.상품명;
+    const 제품명 = (item===대표 && item["1번 상품명"] && item["1번 상품명"]!==item.상품명)
+      ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}` : item.상품명;
 
-    const 색상목록 = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+    const 색상목록 = parseOptions(item.색상).length? parseOptions(item.색상) : [""];
     const 사이즈목록 = expandSizes(item.사이즈);
 
-    색상목록.forEach(color => {
-      if (사이즈목록.length === 0) {
-        const base = applyOptionMode(제품명, color, null, 제품명, "");
-        data.push({ ...base, 옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y" });
+    색상목록.forEach(col=>{
+      if (!사이즈목록.length) {
+        const base = applyOptionMode(제품명, col, null, 제품명, "");
+        data.push({ ...base, 옵션가, 관리코드: item.상품명, 재고수량:99999, 사용여부:"Y" });
       } else {
-        사이즈목록.forEach(size => {
-          const base = applyOptionMode(제품명, color, size, 제품명, "");
-          data.push({ ...base, 옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y" });
+        사이즈목록.forEach(sz=>{
+          const base = applyOptionMode(제품명, col, sz, 제품명, "");
+          data.push({ ...base, 옵션가, 관리코드: item.상품명, 재고수량:99999, 사용여부:"Y" });
         });
       }
     });
   });
 
-  // 중복 제거: 상품명+옵션가+색상+사이즈
+  // 2) 중복 제거 (상품명+옵션가+색상+사이즈)
   {
     const seen = new Set();
-    data = data.filter(row => {
-      const key = [row.관리코드, row.옵션가, row.색상||"", row.사이즈||""].join("|");
+    data = data.filter(r => {
+      const key = [r.관리코드, r.옵션가, r.색상||"", r.사이즈||""].join("|");
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
   }
 
-  // 중복 제거 후 순번 재할당
-  data = data.map((row, idx) => {
-    const seq = String(idx + 1).padStart(2, "0");
-    // 기존 텍스트에서 옛날 순번 제거
-    const text = row.제품선택.replace(/^\d{2}\) /, "");
-    return { ...row, 제품선택: `${seq}) ${text}` };
+  // 3) 상품 그룹별 순번 매핑
+  const groupSeq = {};
+  data.forEach(r=>{
+    if (!(r.관리코드 in groupSeq)) {
+      groupSeq[r.관리코드] = Object.keys(groupSeq).length + 1;
+    }
   });
 
-  // 모드별 컬럼 정리
-  if (mode === "colorOnly") data.forEach(r => delete r.사이즈);
-  if (mode === "sizeOnly") data.forEach(r => delete r.색상);
-  if (mode !== "colorOnly" && !data.some(r => r.사이즈)) {
-    data.forEach(r => delete r.사이즈);
-  }
+  // 4) 순번 붙이기
+  data = data.map(r=>{
+    const seq = String(groupSeq[r.관리코드]).padStart(2,"0");
+    return { ...r, 제품선택: `${seq}) ${r.제품선택.replace(/^\d+\)\s*/, "")}` };
+  });
 
-  // 엑셀 생성
+  // 5) 모드별 컬럼 정리
+  if (mode==="colorOnly") data.forEach(r=>delete r.사이즈);
+  if (mode==="sizeOnly")  data.forEach(r=>delete r.색상);
+  if (mode!=="colorOnly" && !data.some(r=>r.사이즈)) data.forEach(r=>delete r.사이즈);
+
+  // 6) 엑셀 생성
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-  const blob = new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })], { type: "application/octet-stream" });
-  saveAs(blob, `${대표.상품명.replace(/[\\/:*?"<>|]/g, "")}.xls`);
+  const out = XLSX.write(wb,{bookType:"xls",type:"array"});
+  saveAs(new Blob([out],{type:"application/octet-stream"}), `${대표.상품명}.xls`);
 }
+    
 
-// 일괄 ZIP 다운로드
 // 일괄 ZIP 다운로드
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -310,71 +310,74 @@ function generateZip() {
   const mode = getOptionDisplayMode();
   const zip = new JSZip();
 
-  rows.forEach(대표 => {
+  rows.forEach(대표=>{
     const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
-    const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
+    const items = rows.sort((a,b)=>(a===대표?-1:b===대표?1:0));
     let data = [];
 
-    items.forEach(item => {
+    items.forEach(item=>{
       const 옵션가 = item.판매가 - 대표.판매가;
       if (!isValidOptionPrice(대표정가, 옵션가)) return;
 
-      const 제품명 = (item === 대표 && item["1번 상품명"] && item["1번 상품명"] !== item.상품명)
-        ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}`
-        : item.상품명;
+      const 제품명 = (item===대표 && item["1번 상품명"] && item["1번 상품명"]!==item.상품명)
+        ? `${item.상품명.split(" ")[0]} ${item["1번 상품명"]}` : item.상품명;
 
-      const 색상목록 = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+      const 색상목록 = parseOptions(item.색상).length? parseOptions(item.색상) : [""];
       const 사이즈목록 = expandSizes(item.사이즈);
 
-      색상목록.forEach(color => {
-        if (사이즈목록.length === 0) {
-          const base = applyOptionMode(제품명, color, null, 제품명, "");
-          data.push({ ...base, 옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y" });
+      색상목록.forEach(col=>{
+        if (!사이즈목록.length) {
+          const base = applyOptionMode(제품명, col, null, 제품명, "");
+          data.push({ ...base, 옵션가, 관리코드:item.상품명, 재고수량:99999, 사용여부:"Y" });
         } else {
-          사이즈목록.forEach(size => {
-            const base = applyOptionMode(제품명, color, size, 제품명, "");
-            data.push({ ...base, 옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y" });
+          사이즈목록.forEach(sz=>{
+            const base = applyOptionMode(제품명, col, sz, 제품명, "");
+            data.push({ ...base, 옵션가, 관리코드:item.상품명, 재고수량:99999, 사용여부:"Y" });
           });
         }
       });
     });
 
     // 중복 제거
-    const seen = new Set();
-    data = data.filter(row => {
-      const key = [row.관리코드, row.옵션가, row.색상||"", row.사이즈||""].join("|");
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    {
+      const seen = new Set();
+      data = data.filter(r=>{
+        const key=[r.관리코드,r.옵션가,r.색상||"",r.사이즈||""].join("|");
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    // 그룹별 순번 매핑
+    const groupSeq = {};
+    data.forEach(r=>{
+      if (!(r.관리코드 in groupSeq)) {
+        groupSeq[r.관리코드] = Object.keys(groupSeq).length + 1;
+      }
     });
 
-    // 순번 재할당
-    data = data.map((row, idx) => {
-      const seq = String(idx + 1).padStart(2, "0");
-      const text = row.제품선택.replace(/^\d{2}\) /, "");
-      return { ...row, 제품선택: `${seq}) ${text}` };
+    // 순번 붙이기
+    data = data.map(r=>{
+      const seq = String(groupSeq[r.관리코드]).padStart(2,"0");
+      return { ...r, 제품선택: `${seq}) ${r.제품선택.replace(/^\d+\)\s*/, "")}` };
     });
 
     // 모드별 컬럼 정리
-    if (mode === "colorOnly") data.forEach(r => delete r.사이즈);
-    if (mode === "sizeOnly") data.forEach(r => delete r.색상);
-    if (mode !== "colorOnly" && !data.some(r => r.사이즈)) {
-      data.forEach(r => delete r.사이즈);
-    }
+    if (mode==="colorOnly") data.forEach(r=>delete r.사이즈);
+    if (mode==="sizeOnly")  data.forEach(r=>delete r.색상);
+    if (mode!=="colorOnly" && !data.some(r=>r.사이즈)) data.forEach(r=>delete r.사이즈);
 
-    // 워크북 & ZIP 추가
+    // 워크북 & ZIP
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-    const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
-    zip.file(`${대표.상품명.replace(/[\\/:*?"<>|]/g, "")}.xls`, wbout);
+    const out = XLSX.write(wb,{bookType:"xls",type:"array"});
+    zip.file(`${대표.상품명}.xls`, out);
   });
 
-  zip.generateAsync({ type: "blob" }).then(content => {
-    saveAs(content, "옵션_일괄다운로드.zip");
-  });
+  zip.generateAsync({type:"blob"}).then(blob=>saveAs(blob,"옵션_일괄다운로드.zip"));
 }
-
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
 function downloadAddProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
