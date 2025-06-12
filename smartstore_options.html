@@ -287,10 +287,11 @@ function clearTable() {
 }
 
     // 원래 순서 복원
-    function resetOrder() {
-      clearTable();
-      originalData.forEach(d => addRow(d));
-    }
+function resetOrder() {
+  const tbody = document.querySelector('#inputTable tbody');
+  tbody.innerHTML = '';
+  originalData.forEach(d => addRow(d));
+}
 
     // 현재 테이블 데이터를 읽어서 객체 배열 리턴
     function getDataFromTable() {
