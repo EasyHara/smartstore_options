@@ -402,10 +402,13 @@ function moveSelectedToBottom() {
   }
 
   // 옵션 문자열 → 배열
-  function parseOptions(str) {
-    if (!str) return [];
-    return str.toString().split(/[,/]/).map(s => s.trim()).filter(Boolean);
-  }
+function parseOptions(str) {
+  if (!str || typeof str !== 'string') return [];
+  return str
+    .split(/[,，\/／]/g)    // ASCII·전각 콤마, ASCII·전각 슬래시 모두 분리
+    .map(s => s.trim())
+    .filter(Boolean);
+}
 
    
 // 대표상품 기준 엑셀 다운로드
@@ -807,20 +810,24 @@ function applyOptionMode(제품명, 색상, 사이즈, 순번) {
 }
 
   // (2) 사이즈 expand 함수
-  function expandSizes(sizeStr) {
-    if (!sizeStr || typeof sizeStr !== "string") return [];
-    if (sizeStr.includes(",") || sizeStr.includes("/")) {
-      return sizeStr.split(/[,/]/).map(s => s.trim()).filter(Boolean);
-    }
-    const m = sizeStr.match(/^(\d{3})~(\d{3})$/);
-    if (m) {
-      const [start, end] = [parseInt(m[1],10), parseInt(m[2],10)];
-      const out = [];
-      for (let i = start; i <= end; i += 5) out.push(i.toString());
-      return out;
-    }
-    return [sizeStr.trim()];
+function expandSizes(sizeStr) {
+  if (!sizeStr || typeof sizeStr !== 'string') return [];
+  // 콤마/슬래시 분리
+  if (/[,，\/／]/.test(sizeStr)) {
+    return sizeStr
+      .split(/[,，\/／]/g)
+      .map(s => s.trim())
+      .filter(Boolean);
   }
+  // 범위 입력(예: 230~240)
+  const m = sizeStr.match(/^(\d{2,3})~(\d{2,3})$/);
+  if (m) {
+    const start = +m[1], end = +m[2], out = [];
+    for (let v = start; v <= end; v += 5) out.push(String(v));
+    return out;
+  }
+  return [sizeStr.trim()];
+}
 
 // 2) 파일 업로드 리스너
 document.getElementById("inputFile").addEventListener("change", function(e) {
