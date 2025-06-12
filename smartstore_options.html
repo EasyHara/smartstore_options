@@ -571,13 +571,16 @@ function generateZip() {
 
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
 function downloadAddProductExcel() {
+  const mode = getOptionDisplayMode();   // 옵션 노출 모드 확인
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
+  if (rows.length === 0) {
+    return alert("출력할 데이터가 없습니다.");
+  }
 
+  // 대표 상품 결정 & 순서 정렬
   const 대표 = rows.find(r => r.대표) || rows[0];
-
-  // 1) 우선 아이템별 데이터 수집
   const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
+
   let data = [];
   let index = 1;
 
@@ -585,36 +588,28 @@ function downloadAddProductExcel() {
     const 순번 = index < 10 ? `0${index}` : `${index}`;
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
-    const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
+    const 색상배열 = 색상목록.length ? 색상목록 : [""];
 
     색상배열.forEach(color => {
-      if (사이즈목록.length === 0) {
+      const sizeList = 사이즈목록.length ? 사이즈목록 : [null];
+      sizeList.forEach(size => {
+        // applyOptionMode로 모드에 맞춘 '제품선택' 텍스트 생성
+        const opt = applyOptionMode(item.상품명, color, size, 순번);
         data.push({
           추가상품명: "제품선택",
-          추가상품값: `${순번}) ${item.상품명} / ${color}`.trim(),
+          추가상품값: opt.제품선택,
           추가상품가: item.판매가,
           재고수량: 99999,
           사용여부: "Y",
           관리코드: item.상품명
         });
-      } else {
-        사이즈목록.forEach(size => {
-          data.push({
-            추가상품명: "제품선택",
-            추가상품값: `${순번}) ${item.상품명} / ${color}${size}`.trim(), // 사이즈도 key에 포함
-            추가상품가: item.판매가,
-            재고수량: 99999,
-            사용여부: "Y",
-            관리코드: item.상품명
-          });
-        });
-      }
+      });
     });
 
     index++;
   });
 
-  // 2) 중복 제거: 추가상품값(=순번) 기준으로 한 번만 남기기
+  // 중복 제거 (추가상품값 기준)
   {
     const seen = new Set();
     data = data.filter(row => {
@@ -624,14 +619,18 @@ function downloadAddProductExcel() {
     });
   }
 
-  // 3) 시트 생성 및 다운로드
+  // 엑셀 시트 생성 및 다운로드
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "추가상품");
   const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
   const safeName = 대표.상품명.replace(/[\\/:*?"<>|]/g, "").trim();
-  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `추가상품_${safeName}.xls`);
+  saveAs(
+    new Blob([wbout], { type: 'application/octet-stream' }),
+    `추가상품_${safeName}.xls`
+  );
 }
+
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -784,40 +783,28 @@ function getOptionDisplayMode() {
   return selected ? selected.value : "both";
 } 
 
-// 옵션 구성 방식 적용 함수 (텍스트 생성 → 공백/슬래시 정리 → 25자 트리밍 → 반환)
+
   // (1) 옵션 구성 방식 적용 함수
-  function applyOptionMode(제품명, 색상, 사이즈, 순번) {
-    // 1) 순번 접두사 붙이기
-    const prefix = 순번 ? `${순번}) ` : "";
-    let 텍스트 = `${prefix}${제품명}`;
+function applyOptionMode(제품명, 색상, 사이즈, 순번) {
+  const prefix = 순번 ? `${순번}) ` : "";
+  let 텍스트 = `${prefix}${제품명}`;
+  const mode = getOptionDisplayMode();
 
-    // 2) 옵션 노출 모드에 따라 색상/사이즈 붙이기
-    const mode = getOptionDisplayMode();
-    if (mode === "both") {
-      if (색상) 텍스트 += ` / ${색상}`;
-      if (사이즈) 텍스트 += ` / ${사이즈}`;
-    } else if (mode === "colorOnly" && 색상) {
-      텍스트 += ` / ${색상}`;
-    } else if (mode === "sizeOnly" && 사이즈) {
-      텍스트 += ` / ${사이즈}`;
-    }
-
-    // 3) 공백 & 슬래시 공백 제거: ") "→")", " / "→"/"
-    텍스트 = 텍스트
-      .replace(/\)\s*/g, ")")
-      .replace(/\s*\/\s*/g, "/");
-
-    // 4) 25자 초과 시 자르기
-    if (텍스트.length > 25) {
-      텍스트 = 텍스트.slice(0, 25);
-    }
-
-    // 5) 최종 반환 객체 생성
-    const result = { 제품선택: 텍스트 };
-    if (mode === "colorOnly" && 색상)         result.색상 = 색상;
-    if ((mode === "sizeOnly" || mode === "both") && 사이즈) result.사이즈 = 사이즈;
-    return result;
+  if (mode === "both") {
+    const parts = [];
+    if (색상)  parts.push(색상);
+    if (사이즈) parts.push(사이즈);
+    if (parts.length) 텍스트 += ` / ${parts.join(" ")}`;  // 블랙 FREE
   }
+  else if (mode === "colorOnly" && 색상) {
+    텍스트 += ` / ${색상}`;
+  }
+  else if (mode === "sizeOnly" && 사이즈) {
+    텍스트 += ` / ${사이즈}`;
+  }
+
+  return { 제품선택: 텍스트 };
+}
 
   // (2) 사이즈 expand 함수
   function expandSizes(sizeStr) {
@@ -834,7 +821,6 @@ function getOptionDisplayMode() {
     }
     return [sizeStr.trim()];
   }
-
 
 // 2) 파일 업로드 리스너
 document.getElementById("inputFile").addEventListener("change", function(e) {
