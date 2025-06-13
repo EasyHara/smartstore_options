@@ -436,9 +436,10 @@ function downloadRepresentative() {
     if (!isValidOptionPrice(masterPrice, diff)) return;
 
     // 대표만 1번 상품명, 나머지는 원래 상품명
+    const brand = item.상품명.match(/^[^ ]+/)[0];           // "K2 하이크 넥스카프" → "K2"
     const baseName = item.대표
-      ? item["1번 상품명"]
-      : item.상품명;
+    ? `${brand} ${item["1번 상품명"]}`                    // "K2 스포츠 마스크"
+    : item.상품명;  
 
     const colors = parseOptions(item.색상).length
       ? parseOptions(item.색상)
@@ -534,9 +535,10 @@ function generateZip() {
       if (!isValidOptionPrice(masterPrice, diff)) return;   // 네이버 규정 체크
 
       // 대표이면 '1번 상품명', 아니면 일반 '상품명'
-      const baseName = item === repr
-        ? item["1번 상품명"]
-        : item.상품명;
+    const brand = item.상품명.match(/^[^ ]+/)[0];           // "K2 하이크 넥스카프" → "K2"
+    const baseName = item.대표
+    ? `${brand} ${item["1번 상품명"]}`                    // "K2 스포츠 마스크"
+    : item.상품명; 
 
       const colors = parseOptions(item.색상).length
         ? parseOptions(item.색상)
