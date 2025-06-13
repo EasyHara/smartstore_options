@@ -503,40 +503,41 @@ function downloadRepresentative() {
 
 // 일괄 ZIP 다운로드 함수
 function generateZip() {
+  // 1) 제외된 행 가져오기
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (!rows.length) {
-    alert("출력할 데이터가 없습니다.");
-    return;
-  }
+  if (!rows.length) return alert("출력할 데이터가 없습니다.");
 
-  const discountRate = Number(document.getElementById("discountRate").value) || 0;
-  const mode = getOptionDisplayMode();   // "both" / "colorOnly" / "sizeOnly"
+  // 2) 할인률·모드·ZIP
+  const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
+  const mode = getOptionDisplayMode();   // "both", "colorOnly", "sizeOnly"
   const zip = new JSZip();
 
+  // 3) 각 상품을 대표로 ZIP 생성
   rows.forEach(repr => {
-    // 대표원가 계산 (45% 적용 예)
+    // ─ 대표원가 계산
     const masterPrice = calculateOriginalPrice(repr.판매가, discountRate);
 
-    // 대표를 맨 앞, 나머지를 뒤에
+    // ─ 브랜드 추출
+    const brandMatch = repr.상품명.match(/^(\S+)/);
+    const brand = brandMatch ? brandMatch[1] : "";
+
+    // ─ repr을 맨 앞에, 나머지 뒤에
     const ordered = [ repr, ...rows.filter(r => r !== repr) ];
 
+    // ─ 데이터 수집
     const data = [];
     ordered.forEach((item, idx) => {
       const seq  = String(idx + 1).padStart(2, "0");
       const diff = item.판매가 - repr.판매가;
+      if (!isValidOptionPrice(masterPrice, diff)) return;  // 규정 필터
 
-      // **여기서 필터**: diff가 범위를 벗어나면 return
-      if (!isValidOptionPrice(masterPrice, diff)) return;
-
-      // 대표이면 1번 상품명, 아니면 원래 상품명
+      // ─ 대표만 브랜드+1번 상품명, 그 외는 원상품명
       const baseName = item === repr
-        ? item["1번 상품명"]
+        ? `${brand} ${item["1번 상품명"] || item.상품명}`
         : item.상품명;
 
-      const cols = parseOptions(item.색상).length
-        ? parseOptions(item.색상)
-        : [""];
-      const szs = expandSizes(item.사이즈);
+      const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+      const szs  = expandSizes(item.사이즈);
 
       if (mode === "both") {
         cols.forEach(col => szs.forEach(sz => {
@@ -572,21 +573,23 @@ function generateZip() {
       }
     });
 
-    // 헤더
+    // 4) 헤더 동적 생성
     const header = ["제품선택"];
     if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
     if (mode === "colorOnly")               header.push("색상");
     header.push("옵션가","재고수량","관리코드","사용여부");
 
-    // 시트 생성 & ZIP 추가
+    // 5) 워크시트 & 워크북
     const ws = XLSX.utils.json_to_sheet(data, { header });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+
+    // 6) ZIP에 추가
     const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
     zip.file(`${repr.상품명}.xls`, blob);
   });
 
-  // ZIP 다운로드
+  // 7) ZIP 다운로드
   zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
