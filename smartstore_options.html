@@ -413,83 +413,86 @@ function parseOptions(str) {
    
 // 대표상품 기준 엑셀 다운로드
 function downloadRepresentative() {
-  // 1) 제외된 행 거르고 대표 찾기
-  let rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) {
-    alert("출력할 데이터가 없습니다.");
-    return;
-  }
-  const 대표 = rows.find(r => r.대표) || rows[0];
+  // 1) 사용 여부(Y)가 아니면 제외
+  const rows = getDataFromTable().filter(r => !r.제외);
+  if (!rows.length) return alert("출력할 데이터가 없습니다.");
 
-  // 2) 대표만 남겨서 옵션 생성
-  rows = [대표];
+  // 2) 할인률 & 대표 정가 계산
+  const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
+  const master = rows.find(r => r.대표) || rows[0];
+  const masterPrice = calculateOriginalPrice(master.판매가, discountRate);
 
-  // 3) 할인률 & 대표정가
-  const 할인률 = parseFloat(document.getElementById("discountRate").value) || 0;
-  const 대표정가 = calculateOriginalPrice(대표.판매가, 할인률);
+  // 3) 현재 모드(both/colorOnly/sizeOnly)
   const mode = getOptionDisplayMode();
 
-  // 4) 옵션 조합 생성
-  let data = [];
-  rows.forEach(item => {
-    const 옵션가 = item.판매가 - 대표.판매가;
-    if (!isValidOptionPrice(대표정가, 옵션가)) return;
+  // 4) 데이터 조합 생성
+  const data = [];
+  rows.forEach((item, idx) => {
+    const seq = String(idx + 1).padStart(2, "0");        // 01, 02, 03…
+    const diff = item.판매가 - master.판매가;
+    if (!isValidOptionPrice(masterPrice, diff)) return;  // 네이버 규정 체크
 
-    const nm = item.상품명;
-    const 색상목록 = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
-    const 사이즈목록 = expandSizes(item.사이즈);
+    const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+    const szs  = expandSizes(item.사이즈);
 
-  색상목록.forEach(col => {
-    사이즈목록.forEach(sz => {
-      data.push({
-        ...applyOptionMode(nm, col, sz, ""),   // 제품선택: "01) 제품명 / 색상 사이즈"
-        옵션가,
-        재고수량: 99999,
-        관리코드: item.상품명,
-        사용여부: "Y",
-        색상: col,    // ← 추가
-        사이즈: sz    // ← 추가
+    if (mode === "both") {
+      // 색상×사이즈 조합
+      cols.forEach(col => {
+        szs.forEach(sz => {
+          data.push({
+            제품선택: `${seq}) ${item.상품명}${col?` / ${col}`:""}`,
+            사이즈:   sz,
+            옵션가:    diff,
+            재고수량:  99999,
+            관리코드:  item.상품명,
+            사용여부:  "Y"
+          });
+        });
       });
-    });
-  });
+    }
+    else if (mode === "colorOnly") {
+      // 색상만
+      cols.forEach(col => {
+        data.push({
+          제품선택: `${seq}) ${item.상품명}`,
+          색상:     col,
+          옵션가:    diff,
+          재고수량:  99999,
+          관리코드:  item.상품명,
+          사용여부:  "Y"
+        });
+      });
+    }
+    else if (mode === "sizeOnly") {
+      // 사이즈만
+      szs.forEach(sz => {
+        data.push({
+          제품선택: `${seq}) ${item.상품명}`,
+          사이즈:   sz,
+          옵션가:    diff,
+          재고수량:  99999,
+          관리코드:  item.상품명,
+          사용여부:  "Y"
+        });
+      });
+    }
   });
 
-  // 5) 중복 제거
-  {
-    const seen = new Set();
-    data = data.filter(r => {
-      const key = [r.관리코드, r.옵션가, r.색상||"", r.사이즈||""].join("|");
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
+  // 5) 시트 헤더 동적으로 만들기
+  const header = ["제품선택"];
+  if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
+  if (mode === "colorOnly")               header.push("색상");
+  header.push("옵션가", "재고수량", "관리코드", "사용여부");
 
-  // 6) 순번 매핑 & applyOptionMode에서 붙인 텍스트 앞에 번호 붙이기
-  const seqMap = {};
-  data.forEach(r => {
-    if (!(r.관리코드 in seqMap)) seqMap[r.관리코드] = Object.keys(seqMap).length + 1;
-  });
-  data = data.map(r => {
-    const seq = String(seqMap[r.관리코드]).padStart(2, "0");
-    return { ...r, 제품선택: `${seq}) ${r.제품선택}` };
-  });
-
-  // 7) 컬럼 정리
-  if (mode === "both")      data.forEach(r => delete r.색상);
-  if (mode === "colorOnly") data.forEach(r => delete r.사이즈);
-  if (mode === "sizeOnly")  data.forEach(r => delete r.색상);
-
-  // 8) 시트 생성 후 다운로드
-  const ws = XLSX.utils.json_to_sheet(data);
+  // 6) 엑셀 시트 생성 & 다운로드
+  const ws = XLSX.utils.json_to_sheet(data, { header });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
   saveAs(
     new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
-    `${대표.상품명}.xls`
+    `${master.상품명}.xls`
   );
 }
-
 
 // 일괄 ZIP 다운로드 함수
 function generateZip() {
