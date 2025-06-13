@@ -411,36 +411,35 @@ function parseOptions(str) {
     .filter(Boolean);
 }
    
-// “선택상품 엑셀 다운로드” (모든 옵션 → 한 개 파일)
 function downloadRepresentative() {
-  // 1) 제외된 행만
+  // 1) 제외된 행만 필터
   const rows = getDataFromTable().filter(r => !r.제외);
   if (!rows.length) {
     alert("출력할 데이터가 없습니다.");
     return;
   }
 
-  // 2) 모드·할인률·대표 추출
-  const mode         = getOptionDisplayMode();   // "both" | "colorOnly" | "sizeOnly"
+  // 2) 할인률, 모드, 대표 상품, 대표원가 계산
   const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
+  const mode         = getOptionDisplayMode();   // "both" | "colorOnly" | "sizeOnly"
   const master       = rows.find(r => r.대표) || rows[0];
   const masterPrice  = calculateOriginalPrice(master.판매가, discountRate);
 
-  // 3) 대표를 무조건 맨 앞으로!
+  // 3) 대표를 맨 앞으로 재정렬
   const ordered = [ master, ...rows.filter(r => r !== master) ];
 
-  // 4) 브랜드 추출
-  const m = master.상품명.match(/^(\S+)/);
-  const brand = m ? m[1] : "";
+  // 4) 브랜드 추출 (상품명 첫 단어)
+  const brandMatch = master.상품명.match(/^(\S+)/);
+  const brand      = brandMatch ? brandMatch[1] : "";
 
-  // 5) 데이터 조합
+  // 5) 데이터 조합 생성
   const data = [];
   ordered.forEach((item, idx) => {
-    const seq  = String(idx + 1).padStart(2, "0");    // 01,02…
-    const diff = item.판매가 - master.판매가;
-    if (!isValidOptionPrice(masterPrice, diff)) return;
+    const seq  = String(idx + 1).padStart(2, "0");      // 01,02,...
+    const diff = item.판매가 - master.판매가;             // 옵션가 차액
+    if (!isValidOptionPrice(masterPrice, diff)) return; // 네이버 규정 필터
 
-    // 대표만 브랜드+1번상품명, 나머지 원상품명
+    // 대표만 브랜드 + 1번 상품명, 나머지는 원상품명
     const baseName = item.대표
       ? `${brand} ${item["1번 상품명"] || item.상품명}`
       : item.상품명;
@@ -490,50 +489,60 @@ function downloadRepresentative() {
 
   // 6) 헤더 구성
   const header = ["제품선택"];
-  if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
-  if (mode === "colorOnly")               header.push("색상");
-  header.push("옵션가","재고수량","관리코드","사용여부");
+  if (mode === "both"   || mode === "sizeOnly") header.push("사이즈");
+  if (mode === "colorOnly")                    header.push("색상");
+  header.push("옵션가", "재고수량", "관리코드", "사용여부");
 
-  // 7) 엑셀 생성 & 다운로드 (파일명 = 대표상품명)
+  // 7) 엑셀 시트 생성 & 다운로드 (파일명 = 대표 상품명)
   const ws = XLSX.utils.json_to_sheet(data, { header });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
   saveAs(
-    new Blob([XLSX.write(wb, { bookType:"xls", type:"array" })]),
+    new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
     `${master.상품명}.xls`
   );
 }
 
-
-// “일괄 ZIP 다운로드” (각 상품별 대표 → ZIP)
 function generateZip() {
+  // 1) 제외된 행만 필터
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (!rows.length) return alert("출력할 데이터가 없습니다.");
+  if (!rows.length) {
+    alert("출력할 데이터가 없습니다.");
+    return;
+  }
 
+  // 2) 할인률·모드·ZIP 준비
   const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
-  const mode         = getOptionDisplayMode(); // "both" | "colorOnly" | "sizeOnly"
+  const mode         = getOptionDisplayMode();   // "both" | "colorOnly" | "sizeOnly"
   const zip          = new JSZip();
 
+  // 3) 각 행을 대표로 엑셀 생성
   rows.forEach(repr => {
+    // 3-a) 대표원가 계산
     const masterPrice = calculateOriginalPrice(repr.판매가, discountRate);
 
-    // 대표를 앞에, 나머지는 뒤에
-    const ordered = [ repr, ...rows.filter(r => r !== repr) ];
-
-    const m = repr.상품명.match(/^(\S+)/);
+    // 3-b) 브랜드 추출 (상품명 첫 단어)
+    const m     = repr.상품명.match(/^(\S+)/);
     const brand = m ? m[1] : "";
 
+    // 3-c) 대표를 맨 앞, 나머지는 원래 순서대로
+    const ordered = [ repr, ...rows.filter(r => r !== repr) ];
+
+    // 3-d) 데이터 수집
     const data = [];
     ordered.forEach((item, idx) => {
-      const seq  = String(idx + 1).padStart(2, "0");
-      const diff = item.판매가 - repr.판매가;
-      if (!isValidOptionPrice(masterPrice, diff)) return;
+      const seq  = String(idx + 1).padStart(2, "0");     // 01,02…
+      const diff = item.판매가 - repr.판매가;              // 옵션가 차액
+      if (!isValidOptionPrice(masterPrice, diff)) return; // 네이버 규정 필터
 
+      // 대표만 브랜드 + 1번 상품명, 나머지는 원상품명
       const baseName = item === repr
         ? `${brand} ${item["1번 상품명"] || item.상품명}`
         : item.상품명;
 
-      const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+      const cols = parseOptions(item.색상).length
+        ? parseOptions(item.색상)
+        : [""];
       const szs  = expandSizes(item.사이즈);
 
       if (mode === "both") {
@@ -576,19 +585,24 @@ function generateZip() {
       }
     });
 
+    // 4) 헤더 구성
     const header = ["제품선택"];
-    if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
-    if (mode === "colorOnly")               header.push("색상");
-    header.push("옵션가","재고수량","관리코드","사용여부");
+    if (mode === "both"   || mode === "sizeOnly") header.push("사이즈");
+    if (mode === "colorOnly")                    header.push("색상");
+    header.push("옵션가", "재고수량", "관리코드", "사용여부");
 
+    // 5) 워크시트·워크북 생성
     const ws = XLSX.utils.json_to_sheet(data, { header });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-    const blob = XLSX.write(wb, { bookType:"xls", type:"array" });
+
+    // 6) ZIP에 추가 (파일명 = 해당 대표 상품명)
+    const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
     zip.file(`${repr.상품명}.xls`, blob);
   });
 
-  zip.generateAsync({ type:"blob" })
+  // 7) ZIP 생성 & 다운로드
+  zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
 
