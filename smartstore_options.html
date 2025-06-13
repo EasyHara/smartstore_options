@@ -439,21 +439,19 @@ function downloadRepresentative() {
     const 색상목록 = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
     const 사이즈목록 = expandSizes(item.사이즈);
 
-    색상목록.forEach(col => {
-      if (사이즈목록.length === 0) {
-        data.push({
-          ...applyOptionMode(nm, col, null, ""),
-          옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y"
-        });
-      } else {
-        사이즈목록.forEach(sz => {
-          data.push({
-            ...applyOptionMode(nm, col, sz, ""),
-            옵션가, 재고수량: 99999, 관리코드: item.상품명, 사용여부: "Y"
-          });
-        });
-      }
+  색상목록.forEach(col => {
+    사이즈목록.forEach(sz => {
+      data.push({
+        ...applyOptionMode(nm, col, sz, ""),   // 제품선택: "01) 제품명 / 색상 사이즈"
+        옵션가,
+        재고수량: 99999,
+        관리코드: item.상품명,
+        사용여부: "Y",
+        색상: col,    // ← 추가
+        사이즈: sz    // ← 추가
+      });
     });
+  });
   });
 
   // 5) 중복 제거
