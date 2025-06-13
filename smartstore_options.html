@@ -413,76 +413,74 @@ function parseOptions(str) {
    
 // 대표상품 기준 엑셀 다운로드
 function downloadRepresentative() {
-  // 1) 사용 여부(Y) 필터
-  const all = getDataFromTable().filter(r => !r.제외);
-  if (!all.length) return alert("출력할 데이터가 없습니다.");
+  // 1) 사용 여부(Y) 필터링
+  const allRows = getDataFromTable().filter(r => !r.제외);
+  if (allRows.length === 0) {
+    alert("출력할 데이터가 없습니다.");
+    return;
+  }
 
-  // 2) 대표 찾기 & 대표를 맨 앞에
-  const master = all.find(r => r.대표) || all[0];
-  const rows = [ master, ...all.filter(r => r !== master) ];
+  // 2) 대표 상품 찾기
+  const master = allRows.find(r => r.대표) || allRows[0];
 
-  // 3) 할인률·대표정가 계산
+  // 3) 할인률 & 대표원가 계산 (ex. 45%)
   const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
   const masterPrice  = calculateOriginalPrice(master.판매가, discountRate);
 
-  // 4) 모드 확인
-  const mode = getOptionDisplayMode();  // "both" / "colorOnly" / "sizeOnly"
+  // 4) 옵션 노출 모드
+  const mode = getOptionDisplayMode();  // "both", "colorOnly", "sizeOnly"
 
-  // 5) 조합 생성
+  // 5) 대표 상품만 조합 생성
   const data = [];
-  rows.forEach((item, i) => {
-    const seq = String(i+1).padStart(2, "0");                  // 01,02,03…
-    const diff = item.판매가 - master.판매가;
-    if (!isValidOptionPrice(masterPrice, diff)) return;
+  const seq  = "01";                    // 대표는 항상 01번
+  const baseName = master["1번 상품명"]; // 대표만 1번 상품명 사용
 
-    // 대표만 1번 상품명, 나머지는 원래 상품명
-    const brand = item.상품명.match(/^[^ ]+/)[0];           // "K2 하이크 넥스카프" → "K2"
-    const baseName = item.대표
-    ? `${brand} ${item["1번 상품명"]}`                    // "K2 스포츠 마스크"
-    : item.상품명;  
+  // 색상/사이즈 목록 파싱
+  const colors = parseOptions(master.색상).length
+    ? parseOptions(master.색상)
+    : [""];
+  const sizes  = expandSizes(master.사이즈);
 
-    const colors = parseOptions(item.색상).length
-      ? parseOptions(item.색상)
-      : [""];
-    const sizes = expandSizes(item.사이즈);
-
+  colors.forEach(col => {
+    // 사이즈까지 모두 노출 모드
     if (mode === "both") {
-      // 색상×사이즈
-      colors.forEach(col => {
-        sizes.forEach(sz => {
-          data.push({
-            제품선택: `${seq}) ${baseName}${col?` / ${col}`:""}`, 
-            사이즈:   sz,
-            옵션가:    diff,
-            재고수량:  99999,
-            관리코드:  item.상품명,
-            사용여부:  "Y"
-          });
-        });
-      });
-    }
-    else if (mode === "colorOnly") {
-      // 색상만
-      colors.forEach(col => {
+      sizes.forEach(sz => {
+        const diff = master.판매가 - master.판매가; // 항상 0
+        if (!isValidOptionPrice(masterPrice, diff)) return;
         data.push({
-          제품선택: `${seq}) ${baseName}`,
-          색상:     col,
+          제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
+          사이즈:   sz,
           옵션가:    diff,
           재고수량:  99999,
-          관리코드:  item.상품명,
+          관리코드:  master.상품명,
           사용여부:  "Y"
         });
       });
     }
+    // 색상만 노출 모드
+    else if (mode === "colorOnly") {
+      const diff = master.판매가 - master.판매가; // 0
+      if (!isValidOptionPrice(masterPrice, diff)) return;
+      data.push({
+        제품선택: `${seq}) ${baseName}`,
+        색상:     col,
+        옵션가:    diff,
+        재고수량:  99999,
+        관리코드:  master.상품명,
+        사용여부:  "Y"
+      });
+    }
+    // 사이즈만 노출 모드
     else if (mode === "sizeOnly") {
-      // 사이즈만
       sizes.forEach(sz => {
+        const diff = master.판매가 - master.판매가; // 0
+        if (!isValidOptionPrice(masterPrice, diff)) return;
         data.push({
           제품선택: `${seq}) ${baseName}`,
           사이즈:   sz,
           옵션가:    diff,
           재고수량:  99999,
-          관리코드:  item.상품명,
+          관리코드:  master.상품명,
           사용여부:  "Y"
         });
       });
@@ -493,118 +491,104 @@ function downloadRepresentative() {
   const header = ["제품선택"];
   if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
   if (mode === "colorOnly")               header.push("색상");
-  header.push("옵션가","재고수량","관리코드","사용여부");
+  header.push("옵션가", "재고수량", "관리코드", "사용여부");
 
-  // 7) 엑셀 생성 & 다운로드
+  // 7) 엑셀 시트 생성 & 다운로드
   const ws = XLSX.utils.json_to_sheet(data, { header });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
   saveAs(
-    new Blob([XLSX.write(wb,{bookType:"xls",type:"array"})]),
+    new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
     `${master.상품명}.xls`
   );
 }
 
 // 일괄 ZIP 다운로드 함수
 function generateZip() {
-  // 1) 제외된 행 가져오기
   const rows = getDataFromTable().filter(r => !r.제외);
   if (!rows.length) {
     alert("출력할 데이터가 없습니다.");
     return;
   }
 
-  // 2) 할인률, 모드, ZIP 인스턴스
-  const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
+  const discountRate = Number(document.getElementById("discountRate").value) || 0;
   const mode = getOptionDisplayMode();   // "both" / "colorOnly" / "sizeOnly"
   const zip = new JSZip();
 
-  // 3) 각 행을 대표로 파일 만들기
   rows.forEach(repr => {
-    // 대표상품 원가 계산
+    // 대표원가 계산 (45% 적용 예)
     const masterPrice = calculateOriginalPrice(repr.판매가, discountRate);
 
-    // repr을 맨 앞에 두고, 나머지 행들 뒤에 붙이기
+    // 대표를 맨 앞, 나머지를 뒤에
     const ordered = [ repr, ...rows.filter(r => r !== repr) ];
 
-    // 옵션 조합 데이터 수집
     const data = [];
     ordered.forEach((item, idx) => {
-      const seq  = String(idx + 1).padStart(2, "0");         // 순번: 01,02…
-      const diff = item.판매가 - repr.판매가;                 // 옵션가 차이
-      if (!isValidOptionPrice(masterPrice, diff)) return;   // 네이버 규정 체크
+      const seq  = String(idx + 1).padStart(2, "0");
+      const diff = item.판매가 - repr.판매가;
 
-      // 대표이면 '1번 상품명', 아니면 일반 '상품명'
-    const brand = item.상품명.match(/^[^ ]+/)[0];           // "K2 하이크 넥스카프" → "K2"
-    const baseName = item.대표
-    ? `${brand} ${item["1번 상품명"]}`                    // "K2 스포츠 마스크"
-    : item.상품명; 
+      // **여기서 필터**: diff가 범위를 벗어나면 return
+      if (!isValidOptionPrice(masterPrice, diff)) return;
 
-      const colors = parseOptions(item.색상).length
+      // 대표이면 1번 상품명, 아니면 원래 상품명
+      const baseName = item === repr
+        ? item["1번 상품명"]
+        : item.상품명;
+
+      const cols = parseOptions(item.색상).length
         ? parseOptions(item.색상)
         : [""];
-      const sizes = expandSizes(item.사이즈);
+      const szs = expandSizes(item.사이즈);
 
       if (mode === "both") {
-        // 색상×사이즈 조합
-        colors.forEach(col => {
-          sizes.forEach(sz => {
-            data.push({
-              제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
-              사이즈:   sz,
-              옵션가:    diff,
-              재고수량:  99999,
-              관리코드:  item.상품명,
-              사용여부:  "Y"
-            });
-          });
-        });
-      }
-      else if (mode === "colorOnly") {
-        // 색상만
-        colors.forEach(col => {
+        cols.forEach(col => szs.forEach(sz => {
           data.push({
-            제품선택: `${seq}) ${baseName}`,
-            색상:     col,
-            옵션가:    diff,
-            재고수량:  99999,
-            관리코드:  item.상품명,
-            사용여부:  "Y"
-          });
-        });
-      }
-      else if (mode === "sizeOnly") {
-        // 사이즈만
-        sizes.forEach(sz => {
-          data.push({
-            제품선택: `${seq}) ${baseName}`,
+            제품선택: `${seq}) ${baseName}${col?` / ${col}`:""}`,
             사이즈:   sz,
             옵션가:    diff,
             재고수량:  99999,
             관리코드:  item.상품명,
             사용여부:  "Y"
           });
-        });
+        }));
+      }
+      else if (mode === "colorOnly") {
+        cols.forEach(col => data.push({
+          제품선택: `${seq}) ${baseName}`,
+          색상:     col,
+          옵션가:    diff,
+          재고수량:  99999,
+          관리코드:  item.상품명,
+          사용여부:  "Y"
+        }));
+      }
+      else if (mode === "sizeOnly") {
+        szs.forEach(sz => data.push({
+          제품선택: `${seq}) ${baseName}`,
+          사이즈:   sz,
+          옵션가:    diff,
+          재고수량:  99999,
+          관리코드:  item.상품명,
+          사용여부:  "Y"
+        }));
       }
     });
 
-    // 4) 헤더 구성
+    // 헤더
     const header = ["제품선택"];
     if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
     if (mode === "colorOnly")               header.push("색상");
-    header.push("옵션가", "재고수량", "관리코드", "사용여부");
+    header.push("옵션가","재고수량","관리코드","사용여부");
 
-    // 5) 워크시트 & 워크북 생성
+    // 시트 생성 & ZIP 추가
     const ws = XLSX.utils.json_to_sheet(data, { header });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-
-    // 6) ZIP에 파일 추가
     const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
     zip.file(`${repr.상품명}.xls`, blob);
   });
 
-  // 7) ZIP 생성 & 다운로드
+  // ZIP 다운로드
   zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
