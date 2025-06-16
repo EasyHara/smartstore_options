@@ -614,6 +614,58 @@ function generateZip() {
   zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
+// ─ 추가상품 엑셀 다운로드 (대표 상품을 제외한 나머지만) ─
+function downloadAddProductExcel() {
+  const allRows      = getDataFromTable().filter(r => !r.제외);
+  const additional   = allRows.filter(r => !r.대표);
+  if (!additional.length) {
+    alert("추가 상품이 없습니다.");
+    return;
+  }
+
+  // 할인율 · 마스터 가격 계산
+  const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
+  const masterRow    = allRows.find(r => r.대표) || allRows[0];
+  const masterPrice  = calculateOriginalPrice(masterRow.판매가, discountRate);
+
+  const mode = getOptionDisplayMode();
+  const data = [];
+
+  additional.forEach(item => {
+    const diff = item.판매가 - masterRow.판매가;
+    if (!isValidOptionPrice(masterPrice, diff)) return;  // 규정 위반이면 skip
+
+    const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+    const szs  = expandSizes(item.사이즈);
+
+    cols.forEach(col => {
+      szs.forEach(sz => {
+        // applyOptionMode 로 제품선택 문자열 생성
+        const rowObj = applyOptionMode(item.상품명, col, sz, "");
+        rowObj.옵션가    = diff;
+        rowObj.재고수량  = 99999;
+        rowObj.관리코드  = item.상품명;
+        rowObj.사용여부  = "Y";
+        data.push(rowObj);
+      });
+    });
+  });
+
+  // 헤더 정의
+  const header = ["제품선택"];
+  if (mode === "both" || mode === "colorOnly") header.push("색상");
+  if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
+  header.push("옵션가","재고수량","관리코드","사용여부");
+
+  // 워크시트·워크북 생성 및 다운로드
+  const ws = XLSX.utils.json_to_sheet(data, { header });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "추가옵션");
+  saveAs(
+    new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
+    "추가상품.xls"
+  );
+}
 
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
