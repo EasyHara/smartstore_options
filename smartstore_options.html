@@ -690,7 +690,8 @@ function downloadAddProductExcel() {
     new Blob([XLSX.write(wb2, { bookType: "xls", type: "array" })]),
     `추가상품_${safeName}.xls`
   );
-
+}
+    
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
