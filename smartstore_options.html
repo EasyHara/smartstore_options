@@ -615,7 +615,7 @@ function generateZip() {
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
-function downloadAddProductExcel() {
+function () {
   const mode = getOptionDisplayMode();   // 옵션 노출 모드 확인
   const rows = getDataFromTable().filter(r => !r.제외);
   if (rows.length === 0) {
