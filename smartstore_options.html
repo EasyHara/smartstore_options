@@ -626,15 +626,15 @@ function downloadAddProductExcel() {
   const 대표 = rows.find(r => r.대표) || rows[0];
   const items = [대표, ...rows.filter(r => r !== 대표)];
 
-  // 1) 데이터 배열 채우기
+  // (1) 데이터 배열 채우기
   let data = [];
   items.forEach((item, idx) => {
-    const seq = String(idx + 1).padStart(2, "0");
+    const seq    = String(idx + 1).padStart(2, "0");
     const colors = parseOptions(item.색상);
     const sizes  = expandSizes(item.사이즈);
     const cols   = colors.length ? colors : [""];
-    const szs    = sizes.length  ? sizes  : [""];
-    
+    const szs    = sizes .length ? sizes  : [""];
+
     cols.forEach(col => {
       szs.forEach(sz => {
         const opt = applyOptionMode(item.상품명, col, sz, seq);
@@ -650,28 +650,35 @@ function downloadAddProductExcel() {
     });
   });
 
-  // 2) 중복 제거
-  data = data.filter((row, i) =>
+  // (2) 중복 제거
+  data = data.filter((row,i) =>
     data.findIndex(r => r.추가상품값 === row.추가상품값) === i
   );
 
-  // 3) 파일명 안전화
+  // (3) 안전한 파일명
   const safeName = 대표.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
 
-  // 4) 엑셀 헤더 정의
-  const header = ["추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"];
+  // (4) 엑셀 헤더 정의
+  const header = [
+    "추가상품명",
+    "추가상품값",
+    "추가상품가",
+    "재고수량",
+    "사용여부",
+    "관리코드"
+  ];
 
-  // 5) 워크북 생성 & 다운로드
-  const ws = XLSX.utils.json_to_sheet(data, { header });
-  const wb = XLSX.utils.book_new();
+  // (5) 워크북 생성 & 다운로드
+  const ws    = XLSX.utils.json_to_sheet(data, { header });
+  const wb    = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "추가상품");
   const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
   saveAs(
     new Blob([wbout], { type: "application/octet-stream" }),
     `추가상품_${safeName}.xls`
   );
-}  // ← 이 한 줄이 함수의 끝!
- 
+}
+  
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
