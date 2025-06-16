@@ -672,7 +672,7 @@ function downloadAddProductExcel() {
   const safeName = 대표.상품명.replace(/[\\/:*?"<>|]/g, "").trim();
   saveAs(
     new Blob([wbout], { type: 'application/octet-stream' }),
-    추가상품_${safeName}.xls
+    '추가상품_' + safeName + '.xls'
   );
 }
 
