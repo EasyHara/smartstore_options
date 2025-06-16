@@ -686,8 +686,10 @@ function downloadAddProductExcel() {
   const ws2 = XLSX.utils.json_to_sheet(data, { header: addHeader });
   const wb2 = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb2, ws2, "추가옵션");
-  saveAs(..., `추가상품_${safeName}.xls`);
-  }
+  saveAs(
+    new Blob([XLSX.write(wb2, { bookType: "xls", type: "array" })]),
+    `추가상품_${safeName}.xls`
+  );
 
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
