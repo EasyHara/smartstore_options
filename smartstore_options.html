@@ -506,9 +506,10 @@ function downloadRepresentative() {
   const ws = XLSX.utils.json_to_sheet(data, { header });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+  const safeName = master.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
   saveAs(
     new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
-    `${master.상품명}.xls`
+    `${safeName}.xls`
   );
 
 
