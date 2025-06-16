@@ -614,42 +614,68 @@ function generateZip() {
   zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
-// ─ 추가상품 엑셀 다운로드 (대표 상품을 제외한 나머지만) ─
+// 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
 function downloadAddProductExcel() {
-  const allRows      = getDataFromTable().filter(r => !r.제외);
-  const additional   = allRows.filter(r => !r.대표);
-  if (!additional.length) {
-    alert("추가 상품이 없습니다.");
-    return;
+  const mode = getOptionDisplayMode();   // 옵션 노출 모드 확인
+  const rows = getDataFromTable().filter(r => !r.제외);
+  if (rows.length === 0) {
+    return alert("출력할 데이터가 없습니다.");
   }
 
-  // 할인율 · 마스터 가격 계산
-  const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
-  const masterRow    = allRows.find(r => r.대표) || allRows[0];
-  const masterPrice  = calculateOriginalPrice(masterRow.판매가, discountRate);
+  // 대표 상품 결정 & 순서 정렬
+  const 대표 = rows.find(r => r.대표) || rows[0];
+  const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
 
-  const mode = getOptionDisplayMode();
-  const data = [];
+  let data = [];
+  let index = 1;
 
-  additional.forEach(item => {
-    const diff = item.판매가 - masterRow.판매가;
-    if (!isValidOptionPrice(masterPrice, diff)) return;  // 규정 위반이면 skip
+  items.forEach(item => {
+    const 순번 = index < 10 ? 0${index} : ${index};
+    const 색상목록 = parseOptions(item.색상);
+    const 사이즈목록 = expandSizes(item.사이즈);
+    const 색상배열 = 색상목록.length ? 색상목록 : [""];
 
-    const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
-    const szs  = expandSizes(item.사이즈);
-
-    cols.forEach(col => {
-      szs.forEach(sz => {
-        // applyOptionMode 로 제품선택 문자열 생성
-        const rowObj = applyOptionMode(item.상품명, col, sz, "");
-        rowObj.옵션가    = diff;
-        rowObj.재고수량  = 99999;
-        rowObj.관리코드  = item.상품명;
-        rowObj.사용여부  = "Y";
-        data.push(rowObj);
+    색상배열.forEach(color => {
+      const sizeList = 사이즈목록.length ? 사이즈목록 : [null];
+      sizeList.forEach(size => {
+        // applyOptionMode로 모드에 맞춘 '제품선택' 텍스트 생성
+        const opt = applyOptionMode(item.상품명, color, size, 순번);
+        data.push({
+          추가상품명: "제품선택",
+          추가상품값: opt.제품선택,
+          추가상품가: item.판매가,
+          재고수량: 99999,
+          사용여부: "Y",
+          관리코드: item.상품명
+        });
       });
     });
+
+    index++;
   });
+
+  // 중복 제거 (추가상품값 기준)
+  {
+    const seen = new Set();
+    data = data.filter(row => {
+      if (seen.has(row.추가상품값)) return false;
+      seen.add(row.추가상품값);
+      return true;
+    });
+  }
+
+  // 엑셀 시트 생성 및 다운로드
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "추가상품");
+  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+  const safeName = 대표.상품명.replace(/[\\/:*?"<>|]/g, "").trim();
+  saveAs(
+    new Blob([wbout], { type: 'application/octet-stream' }),
+    추가상품_${safeName}.xls
+  );
+}
+
 
   // 헤더 정의
   const header = ["제품선택"];
