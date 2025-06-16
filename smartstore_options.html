@@ -677,20 +677,17 @@ function downloadAddProductExcel() {
 
 
   // 헤더 정의
-  const header = ["제품선택"];
+  const addHeader = ["제품선택"];
   if (mode === "both" || mode === "colorOnly") header.push("색상");
   if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
   header.push("옵션가","재고수량","관리코드","사용여부");
 
   // 워크시트·워크북 생성 및 다운로드
-  const ws = XLSX.utils.json_to_sheet(data, { header });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "추가옵션");
-  saveAs(
-    new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
-    "추가상품.xls"
-  );
-}
+  const ws2 = XLSX.utils.json_to_sheet(data, { header: addHeader });
+  const wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, ws2, "추가옵션");
+  saveAs(..., `추가상품_${safeName}.xls`);
+  }
 
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
