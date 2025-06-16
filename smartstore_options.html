@@ -630,7 +630,7 @@ function downloadAddProductExcel() {
   let index = 1;
 
   items.forEach(item => {
-    const 순번 = index < 10 ? 0${index} : ${index};
+    const 순번 = String(index).padStart(2, "0");
     const 색상목록 = parseOptions(item.색상);
     const 사이즈목록 = expandSizes(item.사이즈);
     const 색상배열 = 색상목록.length ? 색상목록 : [""];
