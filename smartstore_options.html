@@ -615,31 +615,29 @@ function generateZip() {
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
-function downloadAddProductExcel() { 
-  const mode = getOptionDisplayMode();   // 옵션 노출 모드 확인
+function downloadAddProductExcel() {
+  const mode = getOptionDisplayMode();
   const rows = getDataFromTable().filter(r => !r.제외);
-  if (rows.length === 0) {
+  if (!rows.length) {
     return alert("출력할 데이터가 없습니다.");
   }
 
-  // 대표 상품 결정 & 순서 정렬
+  // 대표 상품 앞으로
   const 대표 = rows.find(r => r.대표) || rows[0];
-  const items = rows.sort((a, b) => (a === 대표 ? -1 : b === 대표 ? 1 : 0));
+  const items = [대표, ...rows.filter(r => r !== 대표)];
 
+  // 1) 데이터 배열 채우기
   let data = [];
-  let index = 1;
-
-  items.forEach(item => {
-    const 순번 = String(index).padStart(2, "0");
-    const 색상목록 = parseOptions(item.색상);
-    const 사이즈목록 = expandSizes(item.사이즈);
-    const 색상배열 = 색상목록.length ? 색상목록 : [""];
-
-    색상배열.forEach(color => {
-      const sizeList = 사이즈목록.length ? 사이즈목록 : [null];
-      sizeList.forEach(size => {
-        // applyOptionMode로 모드에 맞춘 '제품선택' 텍스트 생성
-        const opt = applyOptionMode(item.상품명, color, size, 순번);
+  items.forEach((item, idx) => {
+    const seq = String(idx + 1).padStart(2, "0");
+    const colors = parseOptions(item.색상);
+    const sizes  = expandSizes(item.사이즈);
+    const cols   = colors.length ? colors : [""];
+    const szs    = sizes.length  ? sizes  : [""];
+    
+    cols.forEach(col => {
+      szs.forEach(sz => {
+        const opt = applyOptionMode(item.상품명, col, sz, seq);
         data.push({
           추가상품명: "제품선택",
           추가상품값: opt.제품선택,
@@ -650,49 +648,30 @@ function downloadAddProductExcel() {
         });
       });
     });
-
-    index++;
   });
 
-  // 중복 제거 (추가상품값 기준)
-  {
-    const seen = new Set();
-    data = data.filter(row => {
-      if (seen.has(row.추가상품값)) return false;
-      seen.add(row.추가상품값);
-      return true;
-    });
-  }
+  // 2) 중복 제거
+  data = data.filter((row, i) =>
+    data.findIndex(r => r.추가상품값 === row.추가상품값) === i
+  );
 
-  // 엑셀 시트 생성 및 다운로드
-  const ws = XLSX.utils.json_to_sheet(data);
+  // 3) 파일명 안전화
+  const safeName = 대표.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+
+  // 4) 엑셀 헤더 정의
+  const header = ["추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"];
+
+  // 5) 워크북 생성 & 다운로드
+  const ws = XLSX.utils.json_to_sheet(data, { header });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "추가상품");
-  const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-  const safeName = 대표.상품명.replace(/[\\/:*?"<>|]/g, "").trim();
+  const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
   saveAs(
-    new Blob([wbout], { type: 'application/octet-stream' }),
-    '추가상품_' + safeName + '.xls'
-  );
-}
-
-
-  // 헤더 정의
-  const addHeader = ["제품선택"];
-  if (mode === "both" || mode === "colorOnly") header.push("색상");
-  if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
-  header.push("옵션가","재고수량","관리코드","사용여부");
-
-  // 워크시트·워크북 생성 및 다운로드
-  const ws2 = XLSX.utils.json_to_sheet(data, { header: addHeader });
-  const wb2 = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb2, ws2, "추가옵션");
-  saveAs(
-    new Blob([XLSX.write(wb2, { bookType: "xls", type: "array" })]),
+    new Blob([wbout], { type: "application/octet-stream" }),
     `추가상품_${safeName}.xls`
   );
-}
-    
+}  // ← 이 한 줄이 함수의 끝!
+ 
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
