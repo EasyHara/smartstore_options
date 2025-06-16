@@ -660,8 +660,8 @@ function generateZip() {
 
     // 5) 워크북 생성 & 다운로드
     const header = [
-      "추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"
-    ];
+    "추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"
+  ];
     const ws    = XLSX.utils.json_to_sheet(data, { header });
     const wb    = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "추가상품");
@@ -669,6 +669,7 @@ function generateZip() {
     saveAs(new Blob([wbout], { type: "application/octet-stream" }),
            `추가상품_${safeName}.xls`);
   }
+  
 // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력  
 function downloadSingleProductExcel() {
   const rows = getDataFromTable().filter(r => !r.제외);
