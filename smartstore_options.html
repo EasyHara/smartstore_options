@@ -511,7 +511,7 @@ function downloadRepresentative() {
     new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
     `${safeName}.xls`
   );
-
+}
 
 // “일괄 ZIP 다운로드” (각 상품별 대표 → ZIP, 동일 연속 seq 로직 적용)
 function generateZip() {
