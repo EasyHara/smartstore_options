@@ -811,11 +811,6 @@ function downloadSingleProductExcelAll() {
   });
 }
 
-// 색상/사이즈 분리 함수
-function parseOptions(input) {
-  if (!input || typeof input !== 'string') return [];
-  return input.split(/[,/]/).map(s => s.trim()).filter(Boolean);
-}
 // 옵션 노출 방식 확인 함수
 function getOptionDisplayMode() {
   const selected = document.querySelector('input[name="optionDisplay"]:checked');
@@ -900,7 +895,6 @@ document.getElementById("inputFile").addEventListener("change", function(e) {
 
   reader.readAsArrayBuffer(file);
 });
-
   </script>
 </body>
 </html>
