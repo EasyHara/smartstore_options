@@ -202,7 +202,36 @@
   </div>
 
   <script>
+// ▶ JSON 데이터 → 시트 자동 너비 함수
+function autoWidth(ws, data, header) {
+  const colWidths = header.map(hdr => {
+    let maxLen = hdr.length;            // 헤더 길이 기준
+    data.forEach(row => {
+      const v = row[hdr];
+      if (v != null) {
+        const len = v.toString().length;
+        if (len > maxLen) maxLen = len;
+      }
+    });
+    return { wch: maxLen + 2 };         // +2 여유
+  });
+  ws['!cols'] = colWidths;
+}
 
+// ▶ AOA(2차원 배열) → 시트 자동 너비 함수
+function autoWidthAoA(ws, aoa) {
+  const colCount = aoa[0]?.length || 0;
+  const colWidths = [];
+  for (let c = 0; c < colCount; c++) {
+    let maxLen = 0;
+    aoa.forEach(row => {
+      const val = row[c] != null ? row[c].toString() : "";
+      if (val.length > maxLen) maxLen = val.length;
+    });
+    colWidths.push({ wch: maxLen + 2 });
+  }
+  ws['!cols'] = colWidths;
+}
 
     // 클릭 핸들러: Ctrl/Cmd+클릭 시 selected 클래스 토글
 function onRowClick(e) {
@@ -267,6 +296,7 @@ function downloadOrderedTemplate() {
 
   // 3) SheetJS로 워크시트, 워크북 생성
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  autoWidthAoA(ws, [headers, ...data]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "상품옵션");
 
@@ -504,6 +534,7 @@ function downloadRepresentative() {
 
   // 엑셀 생성 & 다운로드
   const ws = XLSX.utils.json_to_sheet(data, { header });
+  autoWidth(ws, data, header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
   const safeName = master.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
@@ -602,6 +633,7 @@ function generateZip() {
 
     // 워크시트·워크북
     const ws = XLSX.utils.json_to_sheet(data, { header });
+    autoWidth(ws, data, header);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
 
@@ -663,6 +695,7 @@ function generateZip() {
     "추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"
   ];
     const ws    = XLSX.utils.json_to_sheet(data, { header });
+    autoWidth(ws, data, header);
     const wb    = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "추가상품");
     const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
@@ -727,7 +760,9 @@ function downloadSingleProductExcel() {
     return line;
   });
 
-  const ws = XLSX.utils.aoa_to_sheet([header, ...rowsArray]);
+  const aoa = [header, ...rowsArray];
+  const ws  = XLSX.utils.aoa_to_sheet(aoa);
+  autoWidthAoA(ws, aoa);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
   const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
@@ -798,7 +833,9 @@ function downloadSingleProductExcelAll() {
       return line;
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([header, ...rowsArray]);
+    const aoa = [header, ...rowsArray];
+    const ws  = XLSX.utils.aoa_to_sheet(aoa);
+    autoWidthAoA(ws, aoa);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
     const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
