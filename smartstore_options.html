@@ -526,6 +526,19 @@ function downloadRepresentative() {
     }
   });
 
+  // --- 25자 초과 보정 로직 추가 ---
+  data.forEach(item => {
+    // 1) ' / ' → '/'
+    if (item.제품선택.length > 25) {
+      item.제품선택 = item.제품선택.replace(/ \/ /g, '/');
+    }
+    // 2) 여전히 25자 초과 → '순번) ' → '순번)'
+    if (item.제품선택.length > 25) {
+      item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, '$1');
+    }
+  });
+  // --- 보정 로직 끝 ---
+
   // 헤더
   const header = ["제품선택"];
   if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
@@ -625,6 +638,19 @@ function generateZip() {
       }
     });
 
+    // --- 25자 초과 보정 로직 추가 ---
+    data.forEach(item => {
+      // 1) ' / ' → '/'
+      if (item.제품선택.length > 25) {
+        item.제품선택 = item.제품선택.replace(/ \/ /g, '/');
+      }
+      // 2) 여전히 25자 초과 → '순번) ' → '순번)'
+      if (item.제품선택.length > 25) {
+        item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, '$1');
+      }
+    });
+    // --- 보정 로직 끝 ---
+
     // 헤더
     const header = ["제품선택"];
     if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
@@ -646,6 +672,7 @@ function generateZip() {
   zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
+
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
   function downloadAddProductExcel() {
     const mode = getOptionDisplayMode();
