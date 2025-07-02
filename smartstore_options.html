@@ -192,6 +192,9 @@
 
     <!-- 다운로드 버튼 -->
     <div style="text-align:center; margin-top:20px;">
+  	<label style="margin-right:16px;">
+  	  <input type="checkbox" id="hideBrand"> 브랜드 가리기
+	</label>
       <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
       <button onclick="generateZip()">일괄 ZIP 다운로드</button>
       <button onclick="downloadAddProductExcel()">추가상품 다운로드</button>
@@ -449,12 +452,13 @@ function downloadRepresentative() {
     return;
   }
 
+  const hideBrand    = document.getElementById("hideBrand").checked;
   const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
-  const mode         = getOptionDisplayMode();   // "both" | "colorOnly" | "sizeOnly"
+  const mode         = getOptionDisplayMode();
   const master       = rows.find(r => r.대표) || rows[0];
   const masterPrice  = calculateOriginalPrice(master.판매가, discountRate);
 
-  // 대표를 맨 앞으로
+  // 대표 맨 앞
   const ordered = [ master, ...rows.filter(r => r !== master) ];
 
   // 브랜드 추출
@@ -465,27 +469,22 @@ function downloadRepresentative() {
   let groupIndex = 0;
 
   ordered.forEach(item => {
-    // 1) 이 그룹(item)의 diff, 옵션 목록 준비
     const diff = item.판매가 - master.판매가;
     const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
     const szs  = expandSizes(item.사이즈);
 
-    // 2) 이 그룹에 하나라도 valid combo 있나?
+    // 규정 통과 여부 체크
     const hasValid = cols.some(col =>
       szs.some(sz => isValidOptionPrice(masterPrice, diff))
     );
-    if (!hasValid) return;  // 규정 위반 그룹은 건너뜀
+    if (!hasValid) return;
 
-    // 3) 순번: 건너뛴 그룹 없이 연속
     groupIndex++;
     const seq = String(groupIndex).padStart(2, "0");
-
-    // 4) 대표만 브랜드+1번상품명, 나머지는 원상품명
     const baseName = item.대표
       ? `${brand} ${item["1번 상품명"] || item.상품명}`
       : item.상품명;
 
-    // 5) 실제 데이터 푸시
     if (mode === "both") {
       cols.forEach(col =>
         szs.forEach(sz => {
@@ -512,7 +511,7 @@ function downloadRepresentative() {
         });
       });
     }
-    else if (mode === "sizeOnly") {
+    else { // sizeOnly
       szs.forEach(sz => {
         data.push({
           제품선택: `${seq}) ${baseName}`,
@@ -526,26 +525,30 @@ function downloadRepresentative() {
     }
   });
 
-  // --- 25자 초과 보정 로직 추가 ---
+  // --- 브랜드 숨기기 & 25자 보정 로직 ---
   data.forEach(item => {
-    // 1) ' / ' → '/'
-    if (item.제품선택.length > 25) {
-      item.제품선택 = item.제품선택.replace(/ \/ /g, '/');
+    // 1) 체크박스 ON → '02) K2 ' 제거
+    if (hideBrand) {
+      item.제품선택 = item.제품선택.replace(/^(\d+\)\s*)\S+\s/, "$1");
     }
-    // 2) 여전히 25자 초과 → '순번) ' → '순번)'
+    // 2) ' / ' → '/'
     if (item.제품선택.length > 25) {
-      item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, '$1');
+      item.제품선택 = item.제품선택.replace(/ \/ /g, "/");
+    }
+    // 3) 여전히 25자 초과 → '순번) ' → '순번)'
+    if (item.제품선택.length > 25) {
+      item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, "$1");
     }
   });
   // --- 보정 로직 끝 ---
 
-  // 헤더
+  // 엑셀 헤더 구성
   const header = ["제품선택"];
   if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
   if (mode === "colorOnly")               header.push("색상");
   header.push("옵션가","재고수량","관리코드","사용여부");
 
-  // 엑셀 생성 & 다운로드
+  // 시트 생성 & 다운로드
   const ws = XLSX.utils.json_to_sheet(data, { header });
   autoWidth(ws, data, header);
   const wb = XLSX.utils.book_new();
@@ -565,6 +568,7 @@ function generateZip() {
     return;
   }
 
+  const hideBrand    = document.getElementById("hideBrand").checked;
   const discountRate = parseFloat(document.getElementById("discountRate").value) || 0;
   const mode         = getOptionDisplayMode();
   const zip          = new JSZip();
@@ -574,9 +578,7 @@ function generateZip() {
     const m           = repr.상품명.match(/^(\S+)/);
     const brand       = m ? m[1] : "";
 
-    // 대표 먼저, 나머지 순서 그대로
     const ordered = [ repr, ...rows.filter(r => r !== repr) ];
-
     const data = [];
     let groupIndex = 0;
 
@@ -585,7 +587,6 @@ function generateZip() {
       const cols = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
       const szs  = expandSizes(item.사이즈);
 
-      // 규정 통과 여부
       const hasValid = cols.some(col =>
         szs.some(sz => isValidOptionPrice(masterPrice, diff))
       );
@@ -593,7 +594,6 @@ function generateZip() {
 
       groupIndex++;
       const seq = String(groupIndex).padStart(2, "0");
-
       const baseName = item === repr
         ? `${brand} ${item["1번 상품명"] || item.상품명}`
         : item.상품명;
@@ -624,7 +624,7 @@ function generateZip() {
           });
         });
       }
-      else if (mode === "sizeOnly") {
+      else {
         szs.forEach(sz => {
           data.push({
             제품선택: `${seq}) ${baseName}`,
@@ -638,37 +638,34 @@ function generateZip() {
       }
     });
 
-    // --- 25자 초과 보정 로직 추가 ---
+    // --- 브랜드 숨기기 & 25자 보정 로직 ---
     data.forEach(item => {
-      // 1) ' / ' → '/'
-      if (item.제품선택.length > 25) {
-        item.제품선택 = item.제품선택.replace(/ \/ /g, '/');
+      if (hideBrand) {
+        item.제품선택 = item.제품선택.replace(/^(\d+\)\s*)\S+\s/, "$1");
       }
-      // 2) 여전히 25자 초과 → '순번) ' → '순번)'
       if (item.제품선택.length > 25) {
-        item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, '$1');
+        item.제품선택 = item.제품선택.replace(/ \/ /g, "/");
+      }
+      if (item.제품선택.length > 25) {
+        item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, "$1");
       }
     });
     // --- 보정 로직 끝 ---
 
-    // 헤더
     const header = ["제품선택"];
     if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
     if (mode === "colorOnly")               header.push("색상");
     header.push("옵션가","재고수량","관리코드","사용여부");
 
-    // 워크시트·워크북
     const ws = XLSX.utils.json_to_sheet(data, { header });
     autoWidth(ws, data, header);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
 
-    // ZIP에 추가 (파일명 = repr.상품명)
     const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
     zip.file(`${repr.상품명}.xls`, blob);
   });
 
-  // ZIP 생성 & 다운로드
   zip.generateAsync({ type: "blob" })
      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
