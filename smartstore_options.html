@@ -129,6 +129,11 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+/*네이버 규정 위반 옵션 표기*/
+.invalid-option {
+  background: #ffe0e0 !important;  /* 연한 붉은색 */
+}
+
   </style>
 </head>
 <body>
@@ -293,8 +298,18 @@ function addRow(data = {}) {
     <td><input type="checkbox" ${data.제외?'checked':''}></td>
   `;
   row.addEventListener('click', onRowClick);
+
+  // 모든 input 이벤트에 유효성 검사 연결
+  row.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', highlightInvalidOptions);
+    input.addEventListener('change', highlightInvalidOptions);
+  });
+
   tbody.appendChild(row);
+  highlightInvalidOptions();
 }
+
+
   // core + plugin 모두 로드된 이후에 한 번만 실행
   Sortable.create(document.querySelector('#inputTable tbody'), {
     animation: 150,
@@ -352,6 +367,7 @@ function clearTable() {
   document.querySelector('#inputTable tbody').innerHTML = '';
   document.getElementById('inputFile').value = '';    // 파일 선택 초기화
   originalData = [];                                  // 저장된 원본 순서도 초기화
+  highlightInvalidOptions(); // ← 이 한 줄 추가!
 }
 
     // 원래 순서 복원
@@ -453,6 +469,7 @@ function moveSelectedToBottom() {
           제외: r['제외']==='Y'
         }));
         originalData = getDataFromTable();
+highlightInvalidOptions();
       };
       reader.readAsArrayBuffer(file);
     });
@@ -468,6 +485,40 @@ function moveSelectedToBottom() {
     const raw = salePrice / (1 - discountRate / 100);
     return Math.round(raw / 100) * 100;
   }
+// JS 함수
+function highlightInvalidOptions() {
+  const discountRate = parseFloat(document.getElementById('discountRate').value) || 0;
+  const tbody = document.querySelector('#inputTable tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  if (!rows.length) return;
+
+  let 대표 = null;
+  rows.forEach(row => {
+    const radio = row.querySelector('input[type="radio"]');
+    if (radio && radio.checked) 대표 = row;
+  });
+  if (!대표) 대표 = rows[0];
+
+  const 대표Inputs = 대표.querySelectorAll('input');
+  const 대표판매가 = parseInt(대표Inputs[3].value, 10) || 0;
+  const masterPrice = calculateOriginalPrice(대표판매가, discountRate);
+
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const 판매가 = parseInt(inputs[3].value, 10) || 0;
+    const diff = 판매가 - 대표판매가;
+    if (!isValidOptionPrice(masterPrice, diff)) {
+      row.classList.add('invalid-option');
+    } else {
+      row.classList.remove('invalid-option');
+    }
+  });
+}
+
+// 이벤트 연결
+document.getElementById('discountRate').addEventListener('input', highlightInvalidOptions);
+
+// addRow, clearTable, 파일 업로드 후 등에도 highlightInvalidOptions() 호출!
 
 // 사이즈에 상품코드 붙이기
 function extractProductCode(name) {
