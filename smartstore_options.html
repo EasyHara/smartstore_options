@@ -477,24 +477,26 @@ highlightInvalidOptions();
       reader.readAsArrayBuffer(file);
     });
       // 네이버 옵션가 유효성 검사
-  function isValidOptionPrice(basePrice, diff) {
-    if (basePrice < 2000) return diff >= 0 && diff <= basePrice;
-    if (basePrice < 10000) return diff >= -basePrice * 0.5 && diff <= basePrice;
-    return diff >= -basePrice * 0.5 && diff <= basePrice * 0.5;
-  }
+function isValidOptionPrice(basePrice, diff) {
+  if (basePrice < 2000) return diff >= 0 && diff <= basePrice;
+  if (basePrice < 10000) return diff >= -basePrice * 0.5 && diff <= basePrice;
+  return diff >= -basePrice * 0.5 && diff <= basePrice * 0.5;
+}
 
   // 할인률 기준 원가 계산
-  function calculateOriginalPrice(salePrice, discountRate) {
-    const raw = salePrice / (1 - discountRate / 100);
-    return Math.round(raw / 100) * 100;
-  }
-// JS 함수
+function calculateOriginalPrice(salePrice, discountRate) {
+  const raw = salePrice / (1 - discountRate / 100);
+  return Math.round(raw / 100) * 100;
+}
+// 빨간색(등록불가 옵션) 표기 함수 - 최종 옵션가로 검사!
 function highlightInvalidOptions() {
   const discountRate = parseFloat(document.getElementById('discountRate').value) || 0;
+  const freeShipping = document.getElementById('freeShippingOption')?.checked;
   const tbody = document.querySelector('#inputTable tbody');
   const rows = Array.from(tbody.querySelectorAll('tr'));
   if (!rows.length) return;
 
+  // 대표행 찾기 (없으면 첫 행)
   let 대표 = null;
   rows.forEach(row => {
     const radio = row.querySelector('input[type="radio"]');
@@ -509,7 +511,12 @@ function highlightInvalidOptions() {
   rows.forEach(row => {
     const inputs = row.querySelectorAll('input');
     const 판매가 = parseInt(inputs[3].value, 10) || 0;
-    const diff = 판매가 - 대표판매가;
+    const isMaster = (row === 대표);
+
+    // 최종 옵션가: diff + 무료배송 체크시 2500 (대표는 무료배송 미적용)
+    let diff = 판매가 - 대표판매가;
+    if (freeShipping && !isMaster) diff += 2500;
+
     if (!isValidOptionPrice(masterPrice, diff)) {
       row.classList.add('invalid-option');
     } else {
@@ -520,8 +527,7 @@ function highlightInvalidOptions() {
 
 // 이벤트 연결
 document.getElementById('discountRate').addEventListener('input', highlightInvalidOptions);
-
-// addRow, clearTable, 파일 업로드 후 등에도 highlightInvalidOptions() 호출!
+document.getElementById('freeShippingOption').addEventListener('change', highlightInvalidOptions);
 
 // 사이즈에 상품코드 붙이기
 function extractProductCode(name) {
@@ -570,7 +576,6 @@ function limitManageCodeLength(str) {
 }
    
 // “선택상품 엑셀 다운로드” (모든 상품 → 한 개 파일, 대표 무조건 01, 규정 위반 그룹 건너뛰고 연속 번호)
-// 선택상품 엑셀 다운로드 (무료배송 체크 시 -무배 파일명)
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (!rows.length) {
@@ -616,19 +621,16 @@ function downloadRepresentative() {
         : item.상품명;
     }
 
-    // 네이버 옵션가 규정 통과 체크
-    const hasValid = colors.some(col => sizes.some(sz => isValidOptionPrice(masterPrice, diff)));
+    // ★ 규정 체크: 무료배송이면 +2500을 옵션가로!
+    const isMaster = (item === master);
+    const optionPrice = diff + (freeShipping && !isMaster ? 2500 : 0);
+
+    // 규정 위반 체크: 반드시 최종 옵션가 기준으로!
+    const hasValid = colors.some(col => sizes.some(sz => isValidOptionPrice(masterPrice, optionPrice)));
     if (!hasValid) return;
 
     groupIndex++;
     const seq = String(groupIndex).padStart(2, "0");
-
-    // 무료배송 적용 옵션가 계산
-    const isMaster = (item === master);
-
-    // 옵션가+2500 적용: 대표(01번)는 그대로, 나머지만 +2500
-    let optionPrice = diff;
-    if (!isMaster && freeShipping) optionPrice += 2500;
 
     if (mode === "both") {
       colors.forEach((col, colIdx) => {
@@ -733,6 +735,10 @@ function downloadRepresentative() {
     }
   });
 
+  // ★★★ 무료배송 체크 시 파일명 변경
+  let safeName = master.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+  if (freeShipping) safeName += "-무배";
+
   // 엑셀 헤더 구성
   const header = ["제품선택"];
   if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
@@ -744,9 +750,6 @@ function downloadRepresentative() {
   autoWidth(ws, data, header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-  const safeNameRaw = master.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
-  const safeName = freeShipping ? `${safeNameRaw}-무배` : safeNameRaw;  // 무료배송시 -무배
-
   saveAs(
     new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
     `${safeName}.xls`
@@ -800,16 +803,16 @@ function generateZip() {
           : item.상품명;
       }
 
-      const hasValid = colors.some(col => sizes.some(sz => isValidOptionPrice(masterPrice, diff)));
+      // ★ 규정 체크: 무료배송이면 +2500을 옵션가로!
+      const isMaster = (item === repr);
+      const optionPrice = diff + (freeShipping && !isMaster ? 2500 : 0);
+
+      // 규정 위반 체크: 반드시 최종 옵션가 기준으로!
+      const hasValid = colors.some(col => sizes.some(sz => isValidOptionPrice(masterPrice, optionPrice)));
       if (!hasValid) return;
 
       groupIndex++;
       const seq = String(groupIndex).padStart(2, "0");
-
-      // 무료배송 옵션가 계산
-      const isMaster = (item === repr);
-      let optionPrice = diff;
-      if (!isMaster && freeShipping) optionPrice += 2500;
 
       if (mode === "both") {
         colors.forEach((col, colIdx) => {
@@ -914,6 +917,10 @@ function generateZip() {
       }
     });
 
+    // ★★★ 무료배송 체크 시 파일명 변경
+    let safeName = repr.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+    if (freeShipping) safeName += "-무배";
+
     const header = ["제품선택"];
     if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
     if (mode === "colorOnly") header.push("색상");
@@ -923,8 +930,6 @@ function generateZip() {
     autoWidth(ws, data, header);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-    const safeNameRaw = repr.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
-    const safeName = freeShipping ? `${safeNameRaw}-무배` : safeNameRaw; // 무료배송시 -무배
 
     const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
     zip.file(`${safeName}.xls`, blob);
@@ -933,6 +938,7 @@ function generateZip() {
   zip.generateAsync({ type: "blob" })
     .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
+
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
   function downloadAddProductExcel() {
     const mode = getOptionDisplayMode();
@@ -1312,7 +1318,7 @@ if (!text.includes('\t') && text.split('\n').length > 1) {
 }
 
 
-});
+});  // ← 이 **닫는 괄호와 세미콜론(;)**이 반드시 필요함!!!
 
   </script>
 </body>
