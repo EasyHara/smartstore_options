@@ -168,6 +168,9 @@
       <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
       <label style="margin-left:20px;">옵션가 계산 할인률 (%)</label>
       <input type="number" id="discountRate" value="0" min="0" max="99">%
+     <label style="margin-left:16px;">
+     <input type="checkbox" id="freeShippingOption"> 무료배송(옵션가+2500원)
+</label>
     </div>
 
     <!-- 옵션 테이블 -->
@@ -567,6 +570,7 @@ function limitManageCodeLength(str) {
 }
    
 // “선택상품 엑셀 다운로드” (모든 상품 → 한 개 파일, 대표 무조건 01, 규정 위반 그룹 건너뛰고 연속 번호)
+// 선택상품 엑셀 다운로드 (무료배송 체크 시 -무배 파일명)
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (!rows.length) {
@@ -579,6 +583,7 @@ function downloadRepresentative() {
   const mode            = getOptionDisplayMode();
   const useAllFirstName = document.getElementById('allFirstName')?.checked;
   const appendCode      = document.getElementById('appendCodeToSize')?.checked;
+  const freeShipping    = document.getElementById('freeShippingOption')?.checked; // 무료배송 체크박스
 
   const master       = rows.find(r => r.대표) || rows[0];
   const masterPrice  = calculateOriginalPrice(master.판매가, discountRate);
@@ -618,15 +623,20 @@ function downloadRepresentative() {
     groupIndex++;
     const seq = String(groupIndex).padStart(2, "0");
 
+    // 무료배송 적용 옵션가 계산
+    const isMaster = (item === master);
+
+    // 옵션가+2500 적용: 대표(01번)는 그대로, 나머지만 +2500
+    let optionPrice = diff;
+    if (!isMaster && freeShipping) optionPrice += 2500;
+
     if (mode === "both") {
       colors.forEach((col, colIdx) => {
         sizes.forEach(sz => {
-          // 사이즈 열에 "사이즈" / "상품코드" 붙이기
           let szCode = sz;
           if (appendCode && itemInfo.codes && itemInfo.codes.length) {
             szCode += " / " + (itemInfo.codes[colIdx] || itemInfo.codes[itemInfo.codes.length-1] || "");
           }
-          // 품절 처리
           let 품절 = false;
           if (
             (item.품절된조합 && (
@@ -639,7 +649,6 @@ function downloadRepresentative() {
           ) {
             품절 = true;
           }
-          // 관리코드 (색상별 1:1, 20자 제한)
           let manageCode = codeList[colIdx];
           if (manageCode.replace(/\s/g, '').length > 20) {
             manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
@@ -647,7 +656,7 @@ function downloadRepresentative() {
           data.push({
             제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
             사이즈:   szCode,
-            옵션가:    diff,
+            옵션가:    optionPrice,
             재고수량:  품절 ? 0 : 99999,
             관리코드:  manageCode,
             사용여부:  "Y"
@@ -673,7 +682,7 @@ function downloadRepresentative() {
         data.push({
           제품선택: `${seq}) ${baseName}`,
           색상:     col,
-          옵션가:    diff,
+          옵션가:    optionPrice,
           재고수량:  품절 ? 0 : 99999,
           관리코드:  manageCode,
           사용여부:  "Y"
@@ -702,7 +711,7 @@ function downloadRepresentative() {
         data.push({
           제품선택: `${seq}) ${baseName}`,
           사이즈:   szCode,
-          옵션가:    diff,
+          옵션가:    optionPrice,
           재고수량:  품절 ? 0 : 99999,
           관리코드:  manageCode,
           사용여부:  "Y"
@@ -735,14 +744,16 @@ function downloadRepresentative() {
   autoWidth(ws, data, header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-  const safeName = master.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+  const safeNameRaw = master.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+  const safeName = freeShipping ? `${safeNameRaw}-무배` : safeNameRaw;  // 무료배송시 -무배
+
   saveAs(
     new Blob([XLSX.write(wb, { bookType: "xls", type: "array" })]),
     `${safeName}.xls`
   );
 }
 
-//일괄 ZIP 다운로드
+// 일괄 ZIP 다운로드 (무료배송 체크 시 내부 파일명 -무배)
 function generateZip() {
   const rows = getDataFromTable().filter(r => !r.제외);
   if (!rows.length) {
@@ -756,6 +767,7 @@ function generateZip() {
   const zip            = new JSZip();
   const useAllFirstName = document.getElementById('allFirstName')?.checked;
   const appendCode     = document.getElementById('appendCodeToSize')?.checked;
+  const freeShipping   = document.getElementById('freeShippingOption')?.checked; // 무료배송 체크박스
 
   rows.forEach(repr => {
     const reprInfo = parseBrandProductType(repr.상품명);
@@ -794,6 +806,11 @@ function generateZip() {
       groupIndex++;
       const seq = String(groupIndex).padStart(2, "0");
 
+      // 무료배송 옵션가 계산
+      const isMaster = (item === repr);
+      let optionPrice = diff;
+      if (!isMaster && freeShipping) optionPrice += 2500;
+
       if (mode === "both") {
         colors.forEach((col, colIdx) => {
           sizes.forEach(sz => {
@@ -820,7 +837,7 @@ function generateZip() {
             data.push({
               제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
               사이즈:   szCode,
-              옵션가:    diff,
+              옵션가:    optionPrice,
               재고수량:  품절 ? 0 : 99999,
               관리코드:  manageCode,
               사용여부:  "Y"
@@ -846,7 +863,7 @@ function generateZip() {
           data.push({
             제품선택: `${seq}) ${baseName}`,
             색상:     col,
-            옵션가:    diff,
+            옵션가:    optionPrice,
             재고수량:  품절 ? 0 : 99999,
             관리코드:  manageCode,
             사용여부:  "Y"
@@ -875,7 +892,7 @@ function generateZip() {
           data.push({
             제품선택: `${seq}) ${baseName}`,
             사이즈:   szCode,
-            옵션가:    diff,
+            옵션가:    optionPrice,
             재고수량:  품절 ? 0 : 99999,
             관리코드:  manageCode,
             사용여부:  "Y"
@@ -906,8 +923,9 @@ function generateZip() {
     autoWidth(ws, data, header);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+    const safeNameRaw = repr.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+    const safeName = freeShipping ? `${safeNameRaw}-무배` : safeNameRaw; // 무료배송시 -무배
 
-    const safeName = repr.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
     const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
     zip.file(`${safeName}.xls`, blob);
   });
@@ -915,7 +933,6 @@ function generateZip() {
   zip.generateAsync({ type: "blob" })
     .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
 }
-
 // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
   function downloadAddProductExcel() {
     const mode = getOptionDisplayMode();
@@ -1295,7 +1312,7 @@ if (!text.includes('\t') && text.split('\n').length > 1) {
 }
 
 
-});  // ← 이 **닫는 괄호와 세미콜론(;)**이 반드시 필요함!!!
+});
 
   </script>
 </body>
