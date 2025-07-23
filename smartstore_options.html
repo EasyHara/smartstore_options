@@ -34,27 +34,31 @@ body {
 
 .main-title-wrap {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;   /* 아래 정렬 */
   justify-content: space-between;
-  gap: 24px;
   min-height: 48px;
-  margin-bottom: 18px;
+  margin-bottom: 28px;
+  position: relative;
+  padding-right: 42px;    /* 우측 버튼 여유 */
 }
+
 .main-title {
-  display: block;
-  font-size: 2.1rem;
+  font-size: 2.2rem;
   font-weight: 700;
   color: #184c37;
+  margin: 0 0 0 16px;
   letter-spacing: 0.02em;
-  margin: 38px 0 0 0;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
+
 .right-guide-inline {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 22px;
+  justify-content: flex-end;
+  margin-right: 0;
+  margin-left: auto;    /* flex에서 오른쪽 끝! */
 }
+
 .guide-info, .guide-example {
   font-size: 13px;
   max-width: 210px;
@@ -67,22 +71,27 @@ body {
 .guide-info b, .guide-example b {
   font-size: 13.5px;
 }
-.webfile-btn {
-  margin-left: 10px;
-  min-width: 85px;
-  height: 34px;
-  align-self: flex-start;
+
+.guide-btn, .webfile-btn {
+  min-width: 140px;    /* 기존 버튼과 유사 */
+  height: 42px;        /* 기존 버튼 높이와 맞춤 */
   background: #e1ece6;
   color: #2d684a;
   border: 1.2px solid #b0c9bb;
-  border-radius: 7px;
-  padding: 7px 18px;
-  font-size: 15px;
+  border-radius: 9px;
+  padding: 0 18px;
+  font-size: 15px;     /* 기존 버튼 크기와 동일 */
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, border 0.14s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
 }
-.webfile-btn:hover {
+
+.guide-btn:hover, .webfile-btn:hover {
   background: #d2e3da;
   color: #184c37;
   border-color: #89ac98;
@@ -305,58 +314,52 @@ input[type="number"] { -moz-appearance: textfield; }
 </head>
 <body>
   <div class="container">
-    <!-- 1. 제목 + 오른쪽 안내/버튼 한줄 정렬 -->
-    <div class="main-title-wrap">
-      <h1 class="main-title">스마트스토어 옵션 자동 생성기</h1>
-      <div class="right-guide-inline">
-        <div class="guide-info">
-          <b>사이즈 입력 방법 안내</b>
-          <ul>
-            <li>범위 입력: 230~240 → 5단위 자동 생성</li>
-            <li>개별 입력: 230,235/245 → 쉼표 또는 슬래시로 직접 지정</li>
-            <li>네이버 규정 초과 옵션은 자동 제거(빨간색 표시)</li>
-          </ul>
-        </div>
-        <div class="guide-example">
-          <b>품절 입력 예시</b>
-          <ul style="margin:4px 0 0 14px;">
-            <li>예시1) 블랙, 블루</li>
-            <li>예시2) 90,100,105</li>
-            <li>예시3) 블랙-100, 블루-105</li>
-          </ul>
-        </div>
-        <button type="button" class="webfile-btn"
-          onclick="window.open('https://github.com/EasyHara/smartstore_options/blob/main/smartstore_options.html', '_blank')"
-          style="margin-left:12px;">
-          웹 파일
-        </button>
+    <!-- 제목, 상단 오른쪽 안내/예시/웹파일 버튼 & 드롭다운 -->
+<div class="main-title-wrap">
+  <h1 class="main-title">스마트스토어 옵션 자동 생성기</h1>
+  <div class="right-guide-inline">
+<button class="guide-btn" id="toggle-size-guide-btn">사이즈 입력 방법 안내</button>
+<button class="guide-btn" id="toggle-out-guide-btn">품절 입력 예시</button>
+<button class="guide-btn webfile-btn" id="webfile-link-btn">웹 파일</button>
+  </div>
+</div>
+    <!-- 드롭다운 영역 -->
+    <div style="display: flex; justify-content: flex-end; align-items: flex-start; gap: 10px; min-height: 40px; position: relative;">
+<div id="size-guide-info" style="display:none; margin-top:10px;">
+  <b>사이즈 입력 방법 안내</b>
+  <ul>
+    <li>범위 입력: 230~240 → 5단위 자동 생성 (예: 230,235,240)</li>
+    <li>개별 입력: 230,235/245 → 쉼표 또는 슬래시로 직접 지정</li>
+    <li>네이버 규정에 따라 미달·초과 옵션은 다운로드 시 자동 제거되며, 빨간색 표시</li>
+  </ul>
+</div>
+      <div id="soldout-guide" class="guide-dropdown" style="display: none;">
+        <b>품절 입력 예시</b><br>
+        • 예시1) 블랙, 블루<br>
+        • 예시2) 90,100,105<br>
+        • 예시3) 블랙-100, 블루-105
       </div>
     </div>
-    <!-- 2. 주요 기능 영역(옵션 입력/표 등) -->
+
+    <!-- 기존 옵션/테이블/버튼 영역 -->
     <div class="option-box">
-      <!-- 파일 선택, 엑셀 양식 다운로드, 옵션 노출방식 등등 -->
-      <div class="file-btn-wrap">
-        <label class="custom-file-label">
-          파일 선택
-          <input type="file" id="inputFile" accept=".xls,.xlsx" style="display:none;">
-        </label>
-        <span id="fileName">선택된 파일 없음</span>
-        <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
-      </div>
-
+      <!-- 파일/엑셀 버튼 (기존대로) -->
+<div class="file-btn-wrap">
+  <input type="file" id="inputFile" style="display:none;">
+  <button type="button" onclick="document.getElementById('inputFile').click();">파일 선택</button>
+  <span id="fileName">선택된 파일 없음</span>
+  <button type="button" class="webfile-btn">엑셀 양식 다운로드</button>
+</div>
+      <!-- 옵션 노출 방식 등 설정 -->
       <div style="margin-bottom:24px;">
-        <span>옵션 노출 방식:</span>
-        <label><input type="radio" name="optionDisplay" value="both" checked> 색상&사이즈 모두</label>
-        <label><input type="radio" name="optionDisplay" value="colorOnly"> 색상만</label>
-        <label><input type="radio" name="optionDisplay" value="sizeOnly"> 사이즈만</label>
-        <label style="margin-left:20px;">옵션가 계산 할인률</label>
-        <input type="number" id="discountRate" value="100" min="0" max="100">%
-        <label style="margin-left:16px;">
-          <input type="checkbox" id="freeShippingOption"> 무료배송(옵션가+2500원)
-        </label>
+        옵션 노출 방식:
+<input type="radio" name="optionDisplay" value="both" id="opt-both" checked> 색상&사이즈 모두
+<input type="radio" name="optionDisplay" value="colorOnly" id="opt-color"> 색상만
+<input type="radio" name="optionDisplay" value="sizeOnly" id="opt-size"> 사이즈만
+옵션가 계산 할인률 <input type="number" id="discountRate" value="100">% 
+<input type="checkbox" id="freeShippingOption"> 무료배송(옵션가+2500원)
       </div>
-
-      <!-- 옵션 입력 표 -->
+      <!-- 테이블 및 아래 버튼 예시 -->
       <table id="inputTable">
         <thead>
           <tr>
@@ -372,39 +375,35 @@ input[type="number"] { -moz-appearance: textfield; }
           </tr>
         </thead>
         <tbody>
-          <!-- JS로 행 추가 -->
+          <!-- 실제 행들은 JS에서 추가/생성 -->
         </tbody>
       </table>
-
-      <!-- 표 아래 행조작 버튼 그룹 -->
+      <!-- 표 하단 액션 버튼 -->
       <div class="table-action-btns">
-        <button onclick="addRow()">+ 행 추가</button>
-        <button onclick="clearTable()">초기화</button>
-        <button onclick="resetOrder()">순서 초기화</button>
-        <button onclick="moveSelectedToTop()">맨 위로</button>
-        <button onclick="moveSelectedUp()">위로</button>
-        <button onclick="moveSelectedDown()">아래로</button>
-        <button onclick="moveSelectedToBottom()">맨 아래로</button>
+        <button>+ 행 추가</button>
+        <button>초기화</button>
+        <button>순서 초기화</button>
+        <button>맨 위로</button>
+        <button>위로</button>
+        <button>아래로</button>
+        <button>맨 아래로</button>
       </div>
-
-      <!-- 다운로드 옵션(중앙 정렬) -->
+      <!-- 다운로드 옵션/버튼 -->
       <div class="download-option-wrap">
-        <label><input type="checkbox" id="hideBrand"> 브랜드 가리기</label>
-        <label><input type="checkbox" id="appendCodeToSize"> 사이즈마다 상품코드</label>
-        <label><input type="checkbox" id="allFirstName"> 모두 1번상품명</label>
+        <label><input type="checkbox"> 브랜드 가리기</label>
+        <label><input type="checkbox"> 사이즈마다 상품코드</label>
+        <label><input type="checkbox"> 모두 1번상품명</label>
       </div>
-      <!-- 다운로드 버튼(중앙 정렬) -->
       <div class="download-btn-wrap">
-        <button onclick="downloadRepresentative()">선택상품 엑셀 다운로드</button>
-        <button onclick="generateZip()">일괄 ZIP 다운로드</button>
-        <button onclick="downloadAddProductExcel()">추가상품 다운로드</button>
-        <button onclick="downloadSingleProductExcel()">단품등록 다운로드</button>
-        <button onclick="downloadSingleProductExcelAll()">단품 전체 ZIP</button>
-        <button onclick="downloadOrderedTemplate()">순서반영 엑셀 다운로드</button>
+        <button>선택상품 엑셀 다운로드</button>
+        <button>일괄 ZIP 다운로드</button>
+        <button>추가상품 다운로드</button>
+        <button>단품등록 다운로드</button>
+        <button>단품 전체 ZIP</button>
+        <button>순서반영 엑셀 다운로드</button>
       </div>
-    </div> <!-- option-box 끝 -->
-  </div> <!-- container 끝 -->
-
+    </div>
+  </div>
   <script>
 
 // 브랜드, 상품코드, 분류, 조합을 추출
@@ -461,6 +460,68 @@ function autoWidthAoA(ws, aoa) {
   }
   ws['!cols'] = colWidths;
 }
+
+//드롭다운 버튼
+document.addEventListener('DOMContentLoaded', function() {
+  // 할인율 input 이벤트 바인딩
+  var discountInput = document.getElementById('discountRate');
+  if (discountInput) {
+    discountInput.addEventListener('input', highlightInvalidOptions);
+    discountInput.addEventListener('change', highlightInvalidOptions);
+  }
+
+  // 파일 업로드 이벤트 바인딩
+  var inputFile = document.getElementById('inputFile');
+  if (inputFile) {
+    inputFile.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        clearTable();
+        json.forEach(r => addRow({
+          상품명: r['상품명'],
+          판매가: r['판매가'],
+          색상:   r['색상'],
+          사이즈: r['사이즈'],
+          '1번 상품명': r['1번 상품명'],
+          품절된조합: r['품절된 조합'] || '',
+          제외: r['제외'] === 'Y'
+        }));
+        originalData = getDataFromTable();
+        highlightInvalidOptions();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  // 사이즈 입력 안내
+  const sizeBtn = document.getElementById('toggle-size-guide-btn');
+  const sizeInfo = document.getElementById('size-guide-info');
+  if (sizeBtn && sizeInfo) {
+    sizeBtn.addEventListener('click', function() {
+      sizeInfo.style.display = (sizeInfo.style.display === 'none' || sizeInfo.style.display === '') ? 'block' : 'none';
+    });
+  }
+  // 품절 입력 예시
+  const outBtn = document.getElementById('toggle-out-guide-btn');
+  const outInfo = document.getElementById('soldout-guide');
+  if (outBtn && outInfo) {
+    outBtn.addEventListener('click', function() {
+      outInfo.style.display = (outInfo.style.display === 'none' || outInfo.style.display === '') ? 'block' : 'none';
+    });
+  }
+  // 웹파일 버튼 새 탭 링크
+  const webfileBtn = document.getElementById('webfile-link-btn');
+  if (webfileBtn) {
+    webfileBtn.addEventListener('click', function() {
+      window.open('https://github.com/EasyHara/smartstore_options/blob/main/smartstore_options.html', '_blank');
+    });
+  }
+});
 
     // 클릭 핸들러: Ctrl/Cmd+클릭 시 selected 클래스 토글
 function onRowClick(e) {
@@ -647,31 +708,7 @@ function moveSelectedToBottom() {
       saveAs(blob,'스스_옵션양식.xls');
     }
 
-    // 업로드 파일 읽기 & 원본 저장
-   document.getElementById('inputFile').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = evt => {
-        const data = new Uint8Array(evt.target.result);
-        const wb = XLSX.read(data,{type:'array'});
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet,{defval:''});
-        clearTable();
-        json.forEach(r => addRow({
-          상품명: r['상품명'],
-          판매가: r['판매가'],
-          색상:   r['색상'],
-          사이즈: r['사이즈'],
-          '1번 상품명': r['1번 상품명'],
-          품절된조합: r['품절된 조합']||'',
-          제외: r['제외']==='Y'
-        }));
-        originalData = getDataFromTable();
-highlightInvalidOptions();
-      };
-      reader.readAsArrayBuffer(file);
-    });
+
       // 네이버 옵션가 유효성 검사
 function isValidOptionPrice(basePrice, diff) {
   if (basePrice < 2000) return diff >= 0 && diff <= basePrice;
