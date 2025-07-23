@@ -25,7 +25,7 @@ body {
 .container {
   max-width: 100%;
   margin: auto;
-  background: #none;
+  background: none;
   padding: 24px 32px 28px 32px;
   border-radius: 16px;
   box-shadow: 0 2px 18px rgba(40,80,60,0.06);
@@ -42,7 +42,7 @@ body {
 }
 
 .main-title {
-  font-size: 2.1rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: #184c37;           /* 톤다운된 진녹색 */
   letter-spacing: 0.02em;
@@ -75,27 +75,46 @@ button:hover, .webfile-btn:hover, .custom-file-label:hover {
   color: #184c37;
   border-color: #89ac98;
 }
-
-.guide-flex {
+.top-guide-row {
   display: flex;
-  align-items: flex-start;
-  gap: 40px;
+  align-items: flex-start;    /* 안내문+예시 위쪽정렬 */
+  gap: 38px;                 /* 버튼-안내문 사이 여백 */
   margin-bottom: 16px;
 }
 
-.guide-info {
-  flex: 1 1 0;
-  min-width: 340px;
-  max-width: 600px;
-  font-size: 14px;
+.file-btn-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-right: 12px;        /* 안내문과 버튼 사이 여백 */
 }
 
+.guide-side-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;                 /* 안내와 예시 사이 여백 */
+}
+.guide-info {
+  min-width: 230px;
+  max-width: 350px;
+  font-size: 13px;
+  color: #203326;
+}
+.guide-example b,
+.guide-info b {
+  font-size: 13.5px;  /* 제목도 함께 소폭 줄임 */
+}
 .guide-example {
+  min-width: 180px;
+  max-width: 330px;
   background: #e0eee7;
   border: 1.2px solid #bedfc8;
   border-radius: 10px;
   color: #296149;
   padding: 11px 18px;
+  font-size: 13px;
+  margin-left: 0; /* 기존 guide-flex에서만 margin-left 주던 것 제거 */
 }
 
 .webfile-btn:hover {
@@ -103,29 +122,15 @@ button:hover, .webfile-btn:hover, .custom-file-label:hover {
   color: #194471;
   border-color: #90b5e3;
 }
+@media (max-width: 900px) {
+  .top-guide-row, .guide-side-wrap {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: stretch;
+  }
+}
 
 /* 예시 중앙 */
-.guide-center {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  margin: 0 0 10px 0;
-}
-
-.guide-example {
-  min-width: 180px;
-  max-width: 330px;
-  width: auto;
-}
-
-.file-btn-wrap {
-  margin-bottom: 24px;  /* 16~32px 사이 추천 */
-  display: flex;
-  align-items: center;
-  gap: 12px;            /* 버튼 사이 여백도 추가 */
-}
-
 #inputTable tr.invalid-option {
   background: #ffeaea !important;   /* 등록불가 옵션은 붉은기, 필요시 회색+주황 등도 추천 */
 }
@@ -296,6 +301,7 @@ input[type="number"] { -moz-appearance: textfield; }
       웹 파일
     </button>
     </div>
+<div class="top-guide-row">
   <div class="file-btn-wrap">
     <label class="custom-file-label">
       파일 선택
@@ -304,7 +310,7 @@ input[type="number"] { -moz-appearance: textfield; }
     <span id="fileName">선택된 파일 없음</span>
     <button onclick="downloadTemplate()">엑셀 양식 다운로드</button>
   </div>
-  <div class="guide-flex">
+  <div class="guide-side-wrap">
     <div class="guide-info">
       <b>사이즈 입력 방법 안내</b>
       <ul>
@@ -320,6 +326,7 @@ input[type="number"] { -moz-appearance: textfield; }
         <li>예시2) 90,100,105</li>
         <li>예시3) 블랙-100, 블루-105</li>
       </ul>
+    </div>
     </div>
   </div>
 
