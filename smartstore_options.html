@@ -390,18 +390,19 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
       <!-- 다운로드 옵션/버튼 -->
       <div class="download-option-wrap">
-        <label><input type="checkbox"> 브랜드 가리기</label>
-        <label><input type="checkbox"> 사이즈마다 상품코드</label>
-        <label><input type="checkbox"> 모두 1번상품명</label>
+<label><input type="checkbox" id="hideBrand"> 브랜드 가리기</label>
+<label><input type="checkbox" id="appendCodeToSize"> 사이즈마다 상품코드</label>
+<label><input type="checkbox" id="allFirstName"> 모두 1번상품명</label>
+
       </div>
-      <div class="download-btn-wrap">
-        <button>선택상품 엑셀 다운로드</button>
-        <button>일괄 ZIP 다운로드</button>
-        <button>추가상품 다운로드</button>
-        <button>단품등록 다운로드</button>
-        <button>단품 전체 ZIP</button>
-        <button>순서반영 엑셀 다운로드</button>
-      </div>
+<div class="download-btn-wrap">
+  <button id="downloadRepresentativeBtn">선택상품 엑셀 다운로드</button>
+  <button id="downloadZipBtn">일괄 ZIP 다운로드</button>
+  <button id="downloadAddProductBtn">추가상품 다운로드</button>
+  <button id="downloadSingleProductBtn">단품등록 다운로드</button>
+  <button id="downloadSingleAllBtn">단품 전체 ZIP</button>
+  <button id="downloadOrderedBtn">순서반영 엑셀 다운로드</button>
+</div>
     </div>
   </div>
   <script>
@@ -1552,6 +1553,14 @@ if (!text.includes('\t') && text.split('\n').length > 1) {
 
 
 });  // ← 이 **닫는 괄호와 세미콜론(;)**이 반드시 필요함!!!
+
+// 버튼 연결 함수
+document.getElementById('downloadRepresentativeBtn').addEventListener('click', downloadRepresentative);
+document.getElementById('downloadZipBtn').addEventListener('click', generateZip);
+document.getElementById('downloadAddProductBtn').addEventListener('click', downloadAddProductExcel);
+document.getElementById('downloadSingleProductBtn').addEventListener('click', downloadSingleProductExcel);
+document.getElementById('downloadSingleAllBtn').addEventListener('click', downloadSingleProductExcelAll);
+document.getElementById('downloadOrderedBtn').addEventListener('click', downloadOrderedTemplate);
 
   </script>
 </body>
