@@ -390,8 +390,9 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
       <!-- 다운로드 옵션/버튼 -->
       <div class="download-option-wrap">
-<label><input type="checkbox" id="hideBrand"> 브랜드 가리기</label>
-<label><input type="checkbox" id="appendCodeToSize"> 사이즈마다 상품코드</label>
+<label><input type="checkbox" id="hideBrand"> 브랜드 제거</label>
+<label><input type="checkbox" id="splitProductCode"> 상품코드 분리</label>
+<label><input type="checkbox" id="appendCodeToSize"> 사이즈에 상품코드</label>
 <label><input type="checkbox" id="allFirstName"> 모두 1번상품명</label>
 
       </div>
@@ -822,6 +823,7 @@ function downloadRepresentative() {
   const mode            = getOptionDisplayMode();
   const useAllFirstName = document.getElementById('allFirstName')?.checked;
   const appendCode      = document.getElementById('appendCodeToSize')?.checked;
+  const splitProductCode = document.getElementById('splitProductCode')?.checked;
   const freeShipping    = document.getElementById('freeShippingOption')?.checked; // 무료배송 체크박스
 
   const master       = rows.find(r => r.대표) || rows[0];
@@ -885,10 +887,15 @@ function downloadRepresentative() {
           ) {
             품절 = true;
           }
-          let manageCode = codeList[colIdx];
-          if (manageCode.replace(/\s/g, '').length > 20) {
-            manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
-          }
+          let manageCode;
+          if (splitProductCode) {
+           manageCode = codeList[colIdx];
+           if (manageCode.replace(/\s/g, '').length > 20) {
+           manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
+             }
+          } else {
+           manageCode = item.상품명;
+           }
           data.push({
             제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
             사이즈:   szCode,
@@ -1071,6 +1078,7 @@ function generateZip() {
             if (manageCode.replace(/\s/g, '').length > 20) {
               manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
             }
+
             data.push({
               제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
               사이즈:   szCode,
