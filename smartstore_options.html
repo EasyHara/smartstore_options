@@ -1412,7 +1412,7 @@ function applyOptionMode(제품명, 색상, 사이즈, 순번) {
   return { 제품선택: 텍스트 };
 }
 
-  // (2) 사이즈 expand 함수
+// (수정된) 사이즈 expand 함수 (범위+단위 자동 분리 지원)
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
   // 콤마/슬래시 분리
@@ -1422,15 +1422,20 @@ function expandSizes(sizeStr) {
       .map(s => s.trim())
       .filter(Boolean);
   }
-  // 범위 입력(예: 230~240)
-  const m = sizeStr.match(/^(\d{2,3})~(\d{2,3})$/);
+  // 범위 입력(예: 230~300mm, 90~110호)
+  const m = sizeStr.match(/^(\d{2,4})~(\d{2,4})(.*)$/);
   if (m) {
-    const start = +m[1], end = +m[2], out = [];
-    for (let v = start; v <= end; v += 5) out.push(String(v));
+    const start = +m[1], end = +m[2];
+    const unit = m[3] ? m[3].trim() : '';
+    const out = [];
+    for (let v = start; v <= end; v += 5) {
+      out.push(unit ? `${v}${unit}` : String(v));
+    }
     return out;
   }
   return [sizeStr.trim()];
 }
+
 
 // 2) 파일 업로드 리스너
 document.getElementById("inputFile").addEventListener("change", function(e) {
@@ -1569,6 +1574,40 @@ document.getElementById('downloadAddProductBtn').addEventListener('click', downl
 document.getElementById('downloadSingleProductBtn').addEventListener('click', downloadSingleProductExcel);
 document.getElementById('downloadSingleAllBtn').addEventListener('click', downloadSingleProductExcelAll);
 document.getElementById('downloadOrderedBtn').addEventListener('click', downloadOrderedTemplate);
+
+document.querySelectorAll('.table-action-btns button').forEach(btn => {
+  const txt = btn.textContent.trim();
+  if(txt === '+ 행 추가') {
+    btn.addEventListener('click', e => { e.preventDefault(); addRow(); });
+  }
+  else if(txt === '초기화') {
+    btn.addEventListener('click', e => { e.preventDefault(); clearTable(); });
+  }
+  else if(txt === '순서 초기화') {
+    btn.addEventListener('click', e => { e.preventDefault(); resetOrder(); });
+  }
+  else if(txt === '맨 위로') {
+    btn.addEventListener('click', e => { e.preventDefault(); moveSelectedToTop(); });
+  }
+  else if(txt === '위로') {
+    btn.addEventListener('click', e => { e.preventDefault(); moveSelectedUp(); });
+  }
+  else if(txt === '아래로') {
+    btn.addEventListener('click', e => { e.preventDefault(); moveSelectedDown(); });
+  }
+  else if(txt === '맨 아래로') {
+    btn.addEventListener('click', e => { e.preventDefault(); moveSelectedToBottom(); });
+  }
+});
+// '엑셀 양식 다운로드' 버튼 연결
+document.querySelectorAll('.webfile-btn').forEach(btn => {
+  if(btn.textContent.includes('엑셀 양식')) {
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      downloadTemplate();
+    });
+  }
+});
 
   </script>
 </body>
