@@ -298,6 +298,21 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] { -moz-appearance: textfield; }
 
+/* 미리보기 옵션 아이템 꾸미기 */
+.preview-option-item {
+  background: #e1ece6;
+  border-radius: 7px;
+  padding: 3px 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.13s, color 0.13s;
+}
+.preview-option-item.selected {
+  background: #f3d8d8 !important;
+  color: #b45454 !important;
+}
+
 /* 반응형 */
 @media (max-width: 900px) {
   .main-title-wrap,
@@ -321,6 +336,8 @@ input[type="number"] { -moz-appearance: textfield; }
 <button class="guide-btn" id="toggle-size-guide-btn">사이즈 입력 방법 안내</button>
 <button class="guide-btn" id="toggle-out-guide-btn">품절 입력 예시</button>
 <button class="guide-btn webfile-btn" id="webfile-link-btn">웹 파일</button>
+<button id="openStockToolBtn" class="guide-btn webfile-btn">관리코드 일괄 품절툴</button>
+
   </div>
 </div>
     <!-- 드롭다운 영역 -->
@@ -349,6 +366,7 @@ input[type="number"] { -moz-appearance: textfield; }
   <button type="button" onclick="document.getElementById('inputFile').click();">파일 선택</button>
   <span id="fileName">선택된 파일 없음</span>
   <button type="button" class="webfile-btn">엑셀 양식 다운로드</button>
+  <button type="button" id="previewToggleBtn" style="margin-left:10px;background:#f2f4f7;color:#888;">옵션 미리보기 OFF</button>
 </div>
       <!-- 옵션 노출 방식 등 설정 -->
       <div style="margin-bottom:24px;">
@@ -378,6 +396,12 @@ input[type="number"] { -moz-appearance: textfield; }
           <!-- 실제 행들은 JS에서 추가/생성 -->
         </tbody>
       </table>
+            <!-- 옵션 미리보기 영역 -->
+      <div class="option-preview-wrap" style="margin:24px 0;">
+       <b>옵션 미리보기</b>
+     <div class="option-preview" style="max-height:170px; overflow:auto; border:1px solid #e5eee5; border-radius:9px; padding:9px 8px; font-size:15px; display:flex; flex-wrap:wrap; gap:7px 14px;"></div>
+     <div style="font-size:13px; color:#888; margin-top:3px;">* 옵션을 클릭하면 해당 행의 품절란에 자동 추가됩니다.</div>
+      </div>
       <!-- 표 하단 액션 버튼 -->
       <div class="table-action-btns">
         <button>+ 행 추가</button>
@@ -408,6 +432,16 @@ input[type="number"] { -moz-appearance: textfield; }
   </div>
   <script>
 
+// (최상단!) 전역 선언 필요
+let originalData = [];
+
+// 옵션 미리보기 기본값 OFF
+let previewEnabled = false; // 기본값 OFF
+
+document.getElementById('openStockToolBtn').addEventListener('click', function() {
+  window.open('stock_zero_tool.html', '_blank');
+});
+
 // 브랜드, 상품코드, 분류, 조합을 추출
 function parseBrandProductType(name) {
   if (!name) return { brand: '', codes: [], type: '', manageCodes: [] };
@@ -420,6 +454,7 @@ function parseBrandProductType(name) {
   } else {
     const type = arr[arr.length - 1];
     const codes = arr.slice(1, -1);
+
     // 관리코드 = 브랜드 + 각 코드 + 분류
     let manageCodes = codes.map(code => {
       let combo = `${brand} ${code} ${type}`;
@@ -494,10 +529,15 @@ document.addEventListener('DOMContentLoaded', function() {
           품절된조합: r['품절된 조합'] || '',
           제외: r['제외'] === 'Y'
         }));
+        // === 추가 코드 ===
+        Array.from(document.querySelectorAll('#inputTable tbody tr')).forEach(row => {
+          updateOptionPreviewForRow(row);
+        });
         originalData = getDataFromTable();
         highlightInvalidOptions();
-      };
-      reader.readAsArrayBuffer(file);
+      }; // ← 여기서 onload 함수 닫기
+
+      reader.readAsArrayBuffer(file); // ← onload 함수 밖에 위치해야 함!
     });
   }
   // 사이즈 입력 안내
@@ -544,6 +584,7 @@ document.getElementById('discountRate').addEventListener('focus', function(e) {
 document.getElementById('discountRate').addEventListener('blur', function(e) {
   if (e.target.value === '') e.target.value = '100';
 });
+
       // 행 추가 + 클릭 이벤트 바인딩
 function addRow(data = {}) {
   const tbody = document.querySelector('#inputTable tbody');
@@ -563,12 +604,20 @@ function addRow(data = {}) {
 
   // 모든 input 이벤트에 유효성 검사 연결
   row.querySelectorAll('input').forEach(input => {
-    input.addEventListener('input', highlightInvalidOptions);
-    input.addEventListener('change', highlightInvalidOptions);
+    input.addEventListener('input', function(){
+      updateOptionPreviewForRow(row);
+      highlightInvalidOptions();
+    });
+    input.addEventListener('change', function(){
+      updateOptionPreviewForRow(row);
+      highlightInvalidOptions();
+    });
   });
 
+      // 아래 코드는 반드시! addRow의 "맨 마지막"에 위치해야 합니다.
   tbody.appendChild(row);
   highlightInvalidOptions();
+  updateOptionPreviewForRow(row);
 }
 
 
@@ -622,7 +671,7 @@ function downloadOrderedTemplate() {
   }
 
     
-    let originalData = [];
+
 
     // 테이블 초기화
 function clearTable() {
@@ -641,20 +690,22 @@ function resetOrder() {
 
     // 현재 테이블 데이터를 읽어서 객체 배열 리턴
     function getDataFromTable() {
-      return Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
-        const inputs = row.querySelectorAll('input');
-        return {
-          대표:     inputs[1].checked,
-          상품명:   inputs[2].value.trim(),
-          판매가:   parseInt(inputs[3].value)||0,
-          색상:     inputs[4].value.trim(),
-          사이즈:   inputs[5].value.trim(),
-          ['1번 상품명']: inputs[6].value.trim(),
-          품절된조합: inputs[7].value.trim(),
-          제외:     inputs[8].checked
-        };
-      });
-    }
+  return Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
+    const inputs = row.querySelectorAll('input');
+    if (inputs.length < 9) return null;
+    return {
+      대표:     inputs[1].checked,
+      상품명:   inputs[2].value.trim(),
+      판매가:   parseInt(inputs[3].value)||0,
+      색상:     inputs[4].value.trim(),
+      사이즈:   inputs[5].value.trim(),
+      ['1번 상품명']: inputs[6].value.trim(),
+      품절된조합: inputs[7].value.trim(),
+      제외:     inputs[8].checked
+    };
+  }).filter(Boolean);
+}
+
 
     // 선택된 행을 위로/아래로 이동
     function moveSelectedUp() {
@@ -744,8 +795,9 @@ function highlightInvalidOptions() {
   const masterPrice = calculateOriginalPrice(대표판매가, discountRate);
 
   rows.forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    const 판매가 = parseInt(inputs[3].value, 10) || 0;
+  const inputs = row.querySelectorAll('input');
+  if (inputs.length < 4) return; // 최소 판매가까지 접근 가능해야 함
+  const 판매가 = parseInt(inputs[3].value, 10) || 0;
     const isMaster = (row === 대표);
 
     // 최종 옵션가: diff + 무료배송 체크시 2500 (대표는 무료배송 미적용)
@@ -1608,6 +1660,103 @@ document.querySelectorAll('.webfile-btn').forEach(btn => {
     });
   }
 });
+// 행의 색상/사이즈 입력값 → 옵션 조합들 반환
+function getOptionCombinations(colorStr, sizeStr) {
+  const colors = parseOptions(colorStr);
+  const sizes  = expandSizes(sizeStr);
+  if (colors.length && sizes.length) {
+    // 색상-사이즈 조합 => "샌드-235"
+    return colors.flatMap(color => sizes.map(size => `${color}-${size}`));
+  } else if (colors.length) {
+    return colors;
+  } else if (sizes.length) {
+    return sizes;
+  } else {
+    return [];
+  }
+}
+
+function updateOptionPreviewForRow(row) {
+  // previewEnabled가 false면 preview 행만 삭제하고 종료
+  if (!previewEnabled) {
+    if (row.nextElementSibling && row.nextElementSibling.classList?.contains('row-option-preview')) {
+      row.nextElementSibling.remove();
+    }
+    return;
+  }
+
+  // ↓↓↓↓↓↓ 아래는 미리보기 표시 부분 (ON일 때만 실행)
+  const tds = row.querySelectorAll('td');
+  const colorInput = tds[4]?.querySelector('input');
+  const sizeInput  = tds[5]?.querySelector('input');
+
+  const colors = colorInput ? colorInput.value : "";
+  const sizes  = sizeInput  ? sizeInput.value  : "";
+
+  // 옵션 조합 얻기
+  const combinations = getOptionCombinations(colors, sizes);
+
+  // 미리보기 row 생성 또는 재사용
+  let preview = row.nextElementSibling && row.nextElementSibling.classList?.contains('row-option-preview')
+    ? row.nextElementSibling
+    : null;
+  if (!preview) {
+    preview = document.createElement('tr');
+    preview.className = 'row-option-preview';
+    const td = document.createElement('td');
+    td.colSpan = row.children.length;
+    td.style.background = '#f7faf7';
+    td.innerHTML = `<div class="option-preview" style="max-height:100px;overflow:auto;display:flex;flex-wrap:wrap;gap:6px 11px;font-size:14px;"></div>`;
+    preview.appendChild(td);
+    row.parentNode.insertBefore(preview, row.nextSibling);
+  }
+  const previewDiv = preview.querySelector('.option-preview');
+  previewDiv.innerHTML = '';
+  const soldoutInput = tds[7]?.querySelector('input'); // 품절란 input
+
+  combinations.forEach(opt => {
+    const el = document.createElement('span');
+    el.textContent = opt;
+    el.className = 'preview-option-item';
+    el.style.cssText = 'background:#e1ece6;border-radius:7px;padding:3px 8px;margin-bottom:4px;cursor:pointer;';
+    // 이미 품절에 있는 값이면 연하게 처리
+    if (soldoutInput && soldoutInput.value.split(/[,\s/]+/).includes(opt)) {
+      el.style.background = '#f3d8d8';
+      el.style.color = '#b45454';
+    }
+    el.addEventListener('click', function() {
+      if (!soldoutInput) return;
+      let vals = soldoutInput.value.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+      if (!vals.includes(opt)) {
+        vals.push(opt);
+      } else {
+        // 이미 있을 경우 삭제(토글)
+        vals = vals.filter(v => v !== opt);
+      }
+      soldoutInput.value = vals.join(', ');
+      // 옵션 미리보기도 다시 반영
+      updateOptionPreviewForRow(row);
+    });
+    previewDiv.appendChild(el);
+  });
+}
+
+
+// 옵션 미리보기 토글
+document.getElementById('previewToggleBtn').addEventListener('click', function() {
+  previewEnabled = !previewEnabled;
+  this.textContent = previewEnabled ? '옵션 미리보기 ON' : '옵션 미리보기 OFF';
+  this.style.background = previewEnabled ? '#61ad80' : '#f2f4f7';
+  this.style.color = previewEnabled ? '#fff' : '#888';
+  refreshAllOptionPreviews();
+});
+
+// 전체 미리보기 갱신 함수
+function refreshAllOptionPreviews() {
+  document.querySelectorAll('#inputTable tbody tr').forEach(row => {
+    updateOptionPreviewForRow(row);
+  });
+}
 
   </script>
 </body>
