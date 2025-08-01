@@ -584,19 +584,19 @@ function addRow(data = {}) {
   const tbody = document.querySelector('#inputTable tbody');
   const row = document.createElement('tr');
   row.innerHTML = `
-   <td><input type="checkbox" class="to-move"></td>
-    <td><input type="radio" name="대표"></td>
-    <td><input type="text" value="${data.상품명||''}"></td>
-    <td><input type="number" value="${data.판매가||''}"></td>
-    <td><input type="text" value="${data.색상||''}"></td>
-    <td><input type="text" value="${data.사이즈||''}"></td>
-    <td><input type="text" value="${data['1번 상품명']||''}"></td>
-    <td><input type="text" value="${data.품절된조합||''}"></td>
-    <td><input type="checkbox" ${data.제외?'checked':''}></td>
+    <td><input type="checkbox" class="to-move"></td>
+    <td><input type="radio"   name="대표" ${data.대표 ? "checked" : ""}></td>
+    <td><input type="text"    value="${data.상품명   || ""}"></td>
+    <td><input type="number"  value="${data.판매가   || ""}"></td>
+    <td><input type="text"    value="${data.색상     || ""}"></td>
+    <td><input type="text"    value="${data.사이즈   || ""}"></td>
+    <td><input type="text"    value="${data['1번 상품명'] || ""}"></td>
+    <td><input type="text"    value="${data.품절된조합 || ""}"></td>
+    <td><input type="checkbox" ${data.제외 ? "checked" : ""}></td>
   `;
+  // 클릭/입력 등 이벤트 바인딩(필요시)
   row.addEventListener('click', onRowClick);
 
-  // 모든 input 이벤트에 유효성 검사 연결
   row.querySelectorAll('input').forEach(input => {
     input.addEventListener('input', function(){
       updateOptionPreviewForRow(row);
@@ -608,7 +608,14 @@ function addRow(data = {}) {
     });
   });
 
-      // 아래 코드는 반드시! addRow의 "맨 마지막"에 위치해야 합니다.
+  // 품절 조합 실시간 반영
+  const soldoutInput = row.querySelectorAll('input')[7];
+  if (soldoutInput) {
+    soldoutInput.addEventListener('input', function() {
+      highlightInvalidOptions();
+    });
+  }
+
   tbody.appendChild(row);
   highlightInvalidOptions();
   updateOptionPreviewForRow(row);
@@ -624,7 +631,8 @@ function addRow(data = {}) {
     multiDragKey: 'ctrl',      // Ctrl(Cmd) 키로 복수 선택
     fallbackTolerance: 3
   });
-    
+  
+
 // 테이블 데이터를 스스_옵션양식 양식으로 엑셀 다운로드
 function downloadOrderedTemplate() {
   // 1) 헤더 정의 (스스_옵션양식과 동일)
@@ -639,7 +647,9 @@ function downloadOrderedTemplate() {
   ];
 
   // 2) 현재 화면에 표시된 순서대로 <tbody>의 각 <tr>을 읽어서 데이터 배열 생성
-  const data = Array.from(document.querySelectorAll('#inputTable tbody tr')).map(row => {
+  const data = Array.from(document.querySelectorAll('#inputTable tbody tr'))
+  .filter(row => !row.classList.contains('row-option-preview')) // 미리보기 tr 제외!
+  .map(row => {  
     const inputs = row.querySelectorAll('input');
     return [
       inputs[2].value.trim(),                // 상품명
@@ -650,7 +660,8 @@ function downloadOrderedTemplate() {
       inputs[7].value.trim(),                // 품절된 조합
       inputs[8].checked ? 'Y' : ''           // 제외(Y/빈문자)
     ];
-  });
+  })
+  .filter(Boolean); // null(비정상행) 제거
 
   // 3) SheetJS로 워크시트, 워크북 생성
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -785,25 +796,68 @@ function highlightInvalidOptions() {
   if (!대표) 대표 = rows[0];
 
   const 대표Inputs = 대표.querySelectorAll('input');
+  if (대표Inputs.length < 9) return;  // 대표행 input도 체크!
+
   const 대표판매가 = parseInt(대표Inputs[3].value, 10) || 0;
   const masterPrice = calculateOriginalPrice(대표판매가, discountRate);
 
   rows.forEach(row => {
-  const inputs = row.querySelectorAll('input');
-  if (inputs.length < 4) return; // 최소 판매가까지 접근 가능해야 함
-  const 판매가 = parseInt(inputs[3].value, 10) || 0;
-    const isMaster = (row === 대표);
+    const inputs = row.querySelectorAll('input');
+    if (inputs.length < 9) return;   // <<=== 이 줄 꼭 추가!
+    const 판매가 = parseInt(inputs[3].value, 10) || 0;
+  const 색상 = inputs[4].value.trim();
+  const 사이즈 = inputs[5].value.trim();
+  const 품절된조합 = inputs[7].value.trim();
+  const isMaster = (row === 대표);
 
-    // 최종 옵션가: diff + 무료배송 체크시 2500 (대표는 무료배송 미적용)
-    let diff = 판매가 - 대표판매가;
-    if (freeShipping && !isMaster) diff += 2500;
+  // 최종 옵션가: diff + 무료배송 체크시 2500 (대표는 무료배송 미적용)
+  let diff = 판매가 - 대표판매가;
+  if (freeShipping && !isMaster) diff += 2500;
 
-    if (!isValidOptionPrice(masterPrice, diff)) {
-      row.classList.add('invalid-option');
-    } else {
-      row.classList.remove('invalid-option');
+  // ------ 품절 옵션 체크 시작 ------
+  let invalid = false;
+  if (품절된조합) {
+    const soldoutArr = 품절된조합.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+    // 색상, 사이즈 조합 모두 있는 경우
+    if (색상 && 사이즈) {
+      const colors = parseOptions(색상);
+      const sizes = expandSizes(사이즈);
+      const combinations = colors.flatMap(color => sizes.map(size => `${color}-${size}`));
+      if (
+        combinations.length > 0 &&
+        combinations.every(c =>
+          soldoutArr.includes(c) ||
+          soldoutArr.includes(c.split('-')[0]) ||
+          soldoutArr.includes(c.split('-')[1])
+        )
+      ) {
+        invalid = true; // 모든 조합이 품절이면 행 전체 invalid-option
+      }
+    } else if (색상) {
+      // 사이즈 없이 색상만 있을 때
+      const colors = parseOptions(색상);
+      if (colors.length > 0 && colors.every(c => soldoutArr.includes(c))) {
+        invalid = true;
+      }
+    } else if (사이즈) {
+      // 색상 없이 사이즈만 있을 때
+      const sizes = expandSizes(사이즈);
+      if (sizes.length > 0 && sizes.every(sz => soldoutArr.includes(sz))) {
+        invalid = true;
+      }
     }
-  });
+  }
+  // ------ 기존 가격 위반 체크도 함께 처리 ------
+  if (!isValidOptionPrice(masterPrice, diff)) {
+    invalid = true;
+  }
+
+  if (invalid) {
+    row.classList.add('invalid-option');
+  } else {
+    row.classList.remove('invalid-option');
+  }
+});
 }
 
 // 이벤트 연결
@@ -1709,30 +1763,46 @@ function updateOptionPreviewForRow(row) {
   const soldoutInput = tds[7]?.querySelector('input'); // 품절란 input
 
   combinations.forEach(opt => {
-    const el = document.createElement('span');
-    el.textContent = opt;
-    el.className = 'preview-option-item';
-    el.style.cssText = 'background:#e1ece6;border-radius:7px;padding:3px 8px;margin-bottom:4px;cursor:pointer;';
-    // 이미 품절에 있는 값이면 연하게 처리
-    if (soldoutInput && soldoutInput.value.split(/[,\s/]+/).includes(opt)) {
-      el.style.background = '#f3d8d8';
-      el.style.color = '#b45454';
+  const el = document.createElement('span');
+  el.textContent = opt;
+  el.className = 'preview-option-item';
+  el.style.cssText = 'background:#e1ece6;border-radius:7px;padding:3px 8px;margin-bottom:4px;cursor:pointer;';
+
+  let isSoldout = false;
+  if (soldoutInput) {
+    const soldoutArr = soldoutInput.value.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+
+    // 컬러-사이즈 조합은 '-' 기준 분리
+    if (opt.includes('-')) {
+      const [color, size] = opt.split('-');
+      isSoldout =
+        soldoutArr.includes(opt) || // "옐로우-90" 등 완전 일치
+        soldoutArr.includes(color) || // "옐로우"만 입력해도 전체 품절
+        soldoutArr.includes(size);    // "90"만 입력해도 전체 90 사이즈 품절
+    } else {
+      isSoldout = soldoutArr.includes(opt);
     }
-    el.addEventListener('click', function() {
-      if (!soldoutInput) return;
-      let vals = soldoutInput.value.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-      if (!vals.includes(opt)) {
-        vals.push(opt);
-      } else {
-        // 이미 있을 경우 삭제(토글)
-        vals = vals.filter(v => v !== opt);
-      }
-      soldoutInput.value = vals.join(', ');
-      // 옵션 미리보기도 다시 반영
-      updateOptionPreviewForRow(row);
-    });
-    previewDiv.appendChild(el);
+  }
+
+  if (isSoldout) {
+    el.style.background = '#f3d8d8';
+    el.style.color = '#b45454';
+  }
+
+  el.addEventListener('click', function() {
+    if (!soldoutInput) return;
+    let vals = soldoutInput.value.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+    if (!vals.includes(opt)) {
+      vals.push(opt);
+    } else {
+      vals = vals.filter(v => v !== opt);
+    }
+    soldoutInput.value = vals.join(', ');
+    updateOptionPreviewForRow(row);
   });
+  previewDiv.appendChild(el);
+});
+
 }
 
 
@@ -1751,9 +1821,6 @@ function refreshAllOptionPreviews() {
     updateOptionPreviewForRow(row);
   });
 }
-
-// 초기 진입시 OFF
-window.onload = toggleOptionPreviewUI;
   </script>
 </body>
 </html>
