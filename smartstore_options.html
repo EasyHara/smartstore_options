@@ -83,7 +83,7 @@ body {
   font-size: 15px;     /* 기존 버튼 크기와 동일 */
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border 0.14s;
+  transition: 0.15s, border 0.14s;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -126,7 +126,7 @@ body {
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border 0.14s;
+  transition: 0.15s, border 0.14s;
 }
 .custom-file-label:hover {
   background: #d2e3da;
@@ -144,7 +144,7 @@ button {
   font-weight: 500;
   margin-left: 8px;
   cursor: pointer;
-  transition: background 0.15s, border 0.14s;
+  transition: 0.15s, border 0.14s;
 }
 button:hover {
   background: #d2e3da;
@@ -306,7 +306,7 @@ input[type="number"] { -moz-appearance: textfield; }
   margin-bottom: 4px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.13s, color 0.13s;
+  transition: 0.13s, color 0.13s;
 }
 .preview-option-item.selected {
   background: #f3d8d8 !important;
@@ -396,12 +396,6 @@ input[type="number"] { -moz-appearance: textfield; }
           <!-- 실제 행들은 JS에서 추가/생성 -->
         </tbody>
       </table>
-            <!-- 옵션 미리보기 영역 -->
-      <div class="option-preview-wrap" style="margin:24px 0;">
-       <b>옵션 미리보기</b>
-     <div class="option-preview" style="max-height:170px; overflow:auto; border:1px solid #e5eee5; border-radius:9px; padding:9px 8px; font-size:15px; display:flex; flex-wrap:wrap; gap:7px 14px;"></div>
-     <div style="font-size:13px; color:#888; margin-top:3px;">* 옵션을 클릭하면 해당 행의 품절란에 자동 추가됩니다.</div>
-      </div>
       <!-- 표 하단 액션 버튼 -->
       <div class="table-action-btns">
         <button>+ 행 추가</button>
@@ -1758,6 +1752,8 @@ function refreshAllOptionPreviews() {
   });
 }
 
+// 초기 진입시 OFF
+window.onload = toggleOptionPreviewUI;
   </script>
 </body>
 </html>
