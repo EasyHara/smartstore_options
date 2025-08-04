@@ -1344,22 +1344,37 @@ function downloadSingleProductExcel() {
   const 대표 = rows.find(r => r.대표) || rows[0];
   if (!대표) return alert("대표 상품이 없습니다.");
 
-  const 색상목록 = parseOptions(대표.색상);
-  const 사이즈목록 = expandSizes(대표.사이즈);
-  const 품절조합 = parseOptions(대표.품절된조합);
+  // 상품코드 분리 체크박스 상태 읽기
+  const splitProductCode = document.getElementById('splitProductCode')?.checked;
+
+  // 옵션 값들 트림 처리 (공백 문제 방지)
+  const 색상목록 = parseOptions(대표.색상).map(s => s.trim());
+  const 사이즈목록 = expandSizes(대표.사이즈).map(s => s.trim());
+  const 품절조합 = parseOptions(대표.품절된조합).map(s => s.trim());
   const 상품명 = 대표["1번 상품명"] || 대표.상품명;
   const mode = getOptionDisplayMode();
 
+  // 상품명에서 관리코드 추출 (splitProductCode 체크 시 적용)
+  const itemInfo = parseBrandProductType(대표.상품명);
+  const manageCodes = itemInfo.manageCodes || [];
+  const codeList = [];
+  for (let i = 0; i < 색상목록.length; i++) {
+    codeList.push(manageCodes[i] || manageCodes[manageCodes.length-1] || 대표.상품명);
+  }
+
   const data = [];
 
-  색상목록.forEach(color => {
+  색상목록.forEach((color, idx) => {
+    // 관리코드: 분리 체크시 색상별, 아니면 대표 상품명
+    const manageCode = splitProductCode ? (codeList[idx] || 대표.상품명) : 대표.상품명;
+
     if (사이즈목록.length === 0) {
       const 품절 = 품절조합.includes(color);
       const row = {
         제품선택: mode === "both" ? `${상품명} / ${color}` : 상품명,
         옵션가: 0,
         재고수량: 품절 ? 0 : 99999,
-        관리코드: 대표.상품명,
+        관리코드: manageCode,
         사용여부: "Y"
       };
       if (mode === "colorOnly") row.색상 = color;
@@ -1367,12 +1382,15 @@ function downloadSingleProductExcel() {
       data.push(row);
     } else {
       사이즈목록.forEach(size => {
-        const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+        const 품절 =
+          품절조합.includes(color) ||
+          품절조합.includes(size) ||
+          품절조합.includes(`${color}-${size}`);
         const row = {
           제품선택: mode === "both" ? `${상품명} / ${color}` : 상품명,
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
+          관리코드: manageCode,
           사용여부: "Y"
         };
         if (mode === "colorOnly") row.색상 = color;
@@ -1382,11 +1400,13 @@ function downloadSingleProductExcel() {
     }
   });
 
+  // 엑셀 헤더 구성
   const header = ["제품선택"];
   if (mode === "colorOnly") header.push("색상");
   if (mode === "sizeOnly" || mode === "both") header.push("사이즈");
   header.push("옵션가", "재고수량", "관리코드", "사용여부");
 
+  // 2차원 배열로 변환
   const rowsArray = data.map(row => {
     const line = [row.제품선택];
     if (mode === "colorOnly") line.push(row.색상);
@@ -1411,28 +1431,43 @@ function downloadSingleProductExcelAll() {
   if (rows.length === 0) return alert("출력할 데이터가 없습니다.");
 
   const mode = getOptionDisplayMode();
+  const splitProductCode = document.getElementById('splitProductCode')?.checked; // ★체크박스 상태
+
   const zip = new JSZip();
   const 상품그룹 = [...new Set(rows.map(r => r.상품명))];
 
   상품그룹.forEach(상품명 => {
     const 그룹 = rows.filter(r => r.상품명 === 상품명);
     const 대표 = 그룹.find(r => r.대표) || 그룹[0];
-    const 색상목록 = parseOptions(대표.색상);
-    const 사이즈목록 = expandSizes(대표.사이즈);
-    const 품절조합 = parseOptions(대표.품절된조합);
+
+    // 옵션 값들 트림 처리 (공백 문제 방지)
+    const 색상목록 = parseOptions(대표.색상).map(s => s.trim());
+    const 사이즈목록 = expandSizes(대표.사이즈).map(s => s.trim());
+    const 품절조합 = parseOptions(대표.품절된조합).map(s => s.trim());
     const 대표상품명 = 대표["1번 상품명"] || 대표.상품명;
+
+    // 상품명에서 관리코드 추출 (splitProductCode 체크 시 적용)
+    const itemInfo = parseBrandProductType(대표.상품명);
+    const manageCodes = itemInfo.manageCodes || [];
+    const codeList = [];
+    for (let i = 0; i < 색상목록.length; i++) {
+      codeList.push(manageCodes[i] || manageCodes[manageCodes.length-1] || 대표.상품명);
+    }
 
     const data = [];
     const 색상배열 = 색상목록.length > 0 ? 색상목록 : [""];
 
-    색상배열.forEach(color => {
+    색상배열.forEach((color, idx) => {
+      // 관리코드: 분리 체크시 색상별, 아니면 대표 상품명
+      const manageCode = splitProductCode ? (codeList[idx] || 대표.상품명) : 대표.상품명;
+
       if (사이즈목록.length === 0) {
         const 품절 = 품절조합.includes(color);
         const row = {
           제품선택: mode === "both" ? `${대표상품명} / ${color}` : 대표상품명,
           옵션가: 0,
           재고수량: 품절 ? 0 : 99999,
-          관리코드: 대표.상품명,
+          관리코드: manageCode,
           사용여부: "Y"
         };
         if (mode === "colorOnly") row.색상 = color;
@@ -1440,12 +1475,15 @@ function downloadSingleProductExcelAll() {
         data.push(row);
       } else {
         사이즈목록.forEach(size => {
-          const 품절 = 품절조합.includes(color) || 품절조합.includes(size) || 품절조합.includes(`${color}-${size}`);
+          const 품절 =
+            품절조합.includes(color) ||
+            품절조합.includes(size) ||
+            품절조합.includes(`${color}-${size}`);
           const row = {
             제품선택: mode === "both" ? `${대표상품명} / ${color}` : 대표상품명,
             옵션가: 0,
             재고수량: 품절 ? 0 : 99999,
-            관리코드: 대표.상품명,
+            관리코드: manageCode,
             사용여부: "Y"
           };
           if (mode === "colorOnly") row.색상 = color;
@@ -1455,6 +1493,7 @@ function downloadSingleProductExcelAll() {
       }
     });
 
+    // 엑셀 헤더 구성
     const header = ["제품선택"];
     if (mode === "colorOnly") header.push("색상");
     if (mode === "sizeOnly" || mode === "both") header.push("사이즈");
@@ -1473,8 +1512,8 @@ function downloadSingleProductExcelAll() {
     autoWidthAoA(ws, aoa);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
-    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
     const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
+    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
     zip.file(`단품등록_${safeFileName}.xls`, wbout);
   });
 
@@ -1515,17 +1554,20 @@ function applyOptionMode(제품명, 색상, 사이즈, 순번) {
 // (수정된) 사이즈 expand 함수 (범위+단위 자동 분리 지원)
 function expandSizes(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') return [];
-  // 콤마/슬래시 분리
-  if (/[,，\/／]/.test(sizeStr)) {
+  sizeStr = sizeStr.trim();
+
+  // 콤마/슬래시/중간점/전각 구분자로 분리 → 각각 재귀 호출
+  if (/[,，\/／·､]/.test(sizeStr)) {
     return sizeStr
-      .split(/[,，\/／]/g)
+      .split(/[,，\/／·､]/g)
       .map(s => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .flatMap(expandSizes); // 이 부분이 중요!
   }
-  // 범위 입력(예: 230~300mm, 90~110호)
+  // 범위 입력(예: 230~300, 90~110호)
   const m = sizeStr.match(/^(\d{2,4})~(\d{2,4})(.*)$/);
   if (m) {
-    const start = +m[1], end = +m[2];
+    const start = parseInt(m[1], 10), end = parseInt(m[2], 10);
     const unit = m[3] ? m[3].trim() : '';
     const out = [];
     for (let v = start; v <= end; v += 5) {
@@ -1533,8 +1575,10 @@ function expandSizes(sizeStr) {
     }
     return out;
   }
-  return [sizeStr.trim()];
+  return [sizeStr];
 }
+
+
 
 
 // 2) 파일 업로드 리스너
@@ -1713,8 +1757,8 @@ function getOptionCombinations(colorStr, sizeStr) {
   const colors = parseOptions(colorStr);
   const sizes  = expandSizes(sizeStr);
   if (colors.length && sizes.length) {
-    // 색상-사이즈 조합 => "샌드-235"
-    return colors.flatMap(color => sizes.map(size => `${color}-${size}`));
+    // 네이버 옵션 다운로드와 같은 표기("색상 / 사이즈")
+    return colors.flatMap(color => sizes.map(size => `${color} / ${size}`));
   } else if (colors.length) {
     return colors;
   } else if (sizes.length) {
@@ -1723,6 +1767,7 @@ function getOptionCombinations(colorStr, sizeStr) {
     return [];
   }
 }
+
 
 function updateOptionPreviewForRow(row) {
   // previewEnabled가 false면 preview 행만 삭제하고 종료
@@ -1742,7 +1787,8 @@ function updateOptionPreviewForRow(row) {
   const sizes  = sizeInput  ? sizeInput.value  : "";
 
   // 옵션 조합 얻기
-  const combinations = getOptionCombinations(colors, sizes);
+  const combinations = getOptionCombinations(colors, sizes); // 색상 / 사이즈 조합 => ["베이지 / 230", ...]
+
 
   // 미리보기 row 생성 또는 재사용
   let preview = row.nextElementSibling && row.nextElementSibling.classList?.contains('row-option-preview')
@@ -1772,15 +1818,14 @@ function updateOptionPreviewForRow(row) {
   if (soldoutInput) {
     const soldoutArr = soldoutInput.value.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
 
-    // 컬러-사이즈 조합은 '-' 기준 분리
-    if (opt.includes('-')) {
-      const [color, size] = opt.split('-');
+    if (opt.includes('/')) {
+      const [color, size] = opt.split(' / ').map(x => x.trim());
       isSoldout =
-        soldoutArr.includes(opt) || // "옐로우-90" 등 완전 일치
-        soldoutArr.includes(color) || // "옐로우"만 입력해도 전체 품절
-        soldoutArr.includes(size);    // "90"만 입력해도 전체 90 사이즈 품절
+        soldoutArr.includes(opt.trim()) ||
+        soldoutArr.includes(color) ||
+        soldoutArr.includes(size);
     } else {
-      isSoldout = soldoutArr.includes(opt);
+      isSoldout = soldoutArr.includes(opt.trim());
     }
   }
 
@@ -1792,16 +1837,17 @@ function updateOptionPreviewForRow(row) {
   el.addEventListener('click', function() {
     if (!soldoutInput) return;
     let vals = soldoutInput.value.split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-    if (!vals.includes(opt)) {
-      vals.push(opt);
+    if (!vals.includes(opt.trim())) {
+      vals.push(opt.trim());
     } else {
-      vals = vals.filter(v => v !== opt);
+      vals = vals.filter(v => v !== opt.trim());
     }
     soldoutInput.value = vals.join(', ');
     updateOptionPreviewForRow(row);
   });
   previewDiv.appendChild(el);
 });
+
 
 }
 
