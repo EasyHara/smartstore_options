@@ -1842,9 +1842,11 @@ function updateOptionPreviewForRow(row) {
   const colors = colorInput ? colorInput.value : "";
   const sizes  = sizeInput  ? sizeInput.value  : "";
 
+
   // 옵션 조합 얻기
-  cconst mode = getOptionDisplayMode();
-  const combinations = getOptionCombinations(colors, sizes, mode);
+const mode = getOptionDisplayMode();
+const combinations = getOptionCombinations(colors, sizes); // 또는 (colors, sizes, mode)
+
 
 
   // 미리보기 row 생성 또는 재사용
