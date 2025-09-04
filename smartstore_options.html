@@ -291,12 +291,19 @@ input[type="text"]:focus, input[type="number"]:focus {
   margin: 0;
 }
 
-/* 숫자필드 스핀 제거 */
+/* 숫자필드 스핀 제거 (크로스브라우저) */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none; margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
-input[type="number"] { -moz-appearance: textfield; }
+
+/* Firefox + 표준 */
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox 구버전 호환 */
+  appearance: textfield;      /* 표준: 경고 사라짐 */
+}
+
 
 /* 미리보기 옵션 아이템 꾸미기 */
 .preview-option-item {
@@ -312,7 +319,12 @@ input[type="number"] { -moz-appearance: textfield; }
   background: #f3d8d8 !important;
   color: #b45454 !important;
 }
-
+/* 드래그 중 시각적 강조 */
+.file-btn-wrap.dragover {
+  outline: 2px dashed #61ad80;
+  outline-offset: 4px;
+  background: #f2fbf6;
+}
 /* 반응형 */
 @media (max-width: 900px) {
   .main-title-wrap,
@@ -909,7 +921,16 @@ function limitManageCodeLength(str) {
   if (out.length > 20) out = out.slice(0, 20);
   return out;
 }
-   
+   // 단종 관리코드 생성: "단종 {상품명}"
+function getDiscontinuedManageCodeByName(productName) {
+  const code = `단종 ${productName || ""}`.trim();
+  // 네이버 20자 제한(공백 제거 기준)을 같이 지키고 싶다면 아래 3줄 유지
+  if (code.replace(/\s/g,'').length > 20) {
+    return code.replace(/\s/g,'').slice(0, 20);
+  }
+  return code;
+}
+
 // “선택상품 엑셀 다운로드” (모든 상품 → 한 개 파일, 대표 무조건 01, 규정 위반 그룹 건너뛰고 연속 번호)
 function downloadRepresentative() {
   const rows = getDataFromTable().filter(r => !r.제외);
@@ -977,7 +998,7 @@ function downloadRepresentative() {
           const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
           let manageCode;
           if (soldoutArr.includes("단종")) {
-            manageCode = "단종";
+            manageCode = getDiscontinuedManageCodeByName(item.상품명);
           } else if (splitProductCode) {
             manageCode = codeList[colIdx];
             if (manageCode.replace(/\s/g, '').length > 20) {
@@ -1015,7 +1036,7 @@ function downloadRepresentative() {
         const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
         let manageCode;
         if (soldoutArr.includes("단종")) {
-          manageCode = "단종";
+          manageCode = getDiscontinuedManageCodeByName(item.상품명);
         } else {
           manageCode = codeList[colIdx];
           if (manageCode.replace(/\s/g, '').length > 20) {
@@ -1051,7 +1072,7 @@ function downloadRepresentative() {
         const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
         let manageCode;
         if (soldoutArr.includes("단종")) {
-          manageCode = "단종";
+          manageCode = getDiscontinuedManageCodeByName(item.상품명);
         } else {
           manageCode = codeList[0];
           if (manageCode.replace(/\s/g, '').length > 20) {
@@ -1184,7 +1205,7 @@ function generateZip() {
             const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
             let manageCode;
             if (soldoutArr.includes("단종")) {
-              manageCode = "단종";
+              manageCode = getDiscontinuedManageCodeByName(item.상품명);
             } else {
               manageCode = codeList[colIdx];
               if (manageCode.replace(/\s/g, '').length > 20) {
@@ -1222,7 +1243,7 @@ function generateZip() {
           const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
           let manageCode;
           if (soldoutArr.includes("단종")) {
-            manageCode = "단종";
+            manageCode = getDiscontinuedManageCodeByName(item.상품명);
           } else {
             manageCode = codeList[colIdx];
             if (manageCode.replace(/\s/g, '').length > 20) {
@@ -1262,7 +1283,7 @@ function generateZip() {
           const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
           let manageCode;
           if (soldoutArr.includes("단종")) {
-            manageCode = "단종";
+            manageCode = getDiscontinuedManageCodeByName(item.상품명);
           } else {
             manageCode = codeList[0];
             if (manageCode.replace(/\s/g, '').length > 20) {
@@ -1357,7 +1378,7 @@ function generateZip() {
         const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
         let manageCode;
         if (soldoutArr.includes("단종")) {
-          manageCode = "단종";
+          manageCode = getDiscontinuedManageCodeByName(item.상품명);
         } else {
           manageCode = item.상품명;
         }
@@ -1842,11 +1863,9 @@ function updateOptionPreviewForRow(row) {
   const colors = colorInput ? colorInput.value : "";
   const sizes  = sizeInput  ? sizeInput.value  : "";
 
-
   // 옵션 조합 얻기
-const mode = getOptionDisplayMode();
-const combinations = getOptionCombinations(colors, sizes); // 또는 (colors, sizes, mode)
-
+  const mode = getOptionDisplayMode();
+  const combinations = getOptionCombinations(colors, sizes, mode);
 
 
   // 미리보기 row 생성 또는 재사용
@@ -1931,6 +1950,91 @@ function refreshAllOptionPreviews() {
     updateOptionPreviewForRow(row);
   });
 }
+// ================ 드래그&드롭 업로드(기존 양식 유지) ================
+(function enableDragAndDropUpload() {
+  const zone = document.querySelector('.file-btn-wrap');  // 파일 버튼 있는 줄
+  if (!zone) return;
+
+  const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+
+  // 드래그 시 하이라이트
+  ['dragenter', 'dragover'].forEach(ev => {
+    zone.addEventListener(ev, (e) => {
+      stop(e);
+      zone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'dragend'].forEach(ev => {
+    zone.addEventListener(ev, (e) => {
+      stop(e);
+      zone.classList.remove('dragover');
+    });
+  });
+
+  // 파일 드롭 처리: 기존 업로드와 동일하게 테이블 채움
+  zone.addEventListener('drop', (e) => {
+    stop(e);
+    zone.classList.remove('dragover');
+
+    const files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+
+    const file = files[0];
+    const okExt = /\.xlsx?$/i.test(file.name);
+    if (!okExt) {
+      alert('엑셀 파일(.xls, .xlsx)만 업로드할 수 있습니다.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        // === 아래 로직은 "기존 input 업로드"와 동일하게 동작하도록 작성 ===
+        const data = new Uint8Array(evt.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName =
+          workbook.SheetNames.find(n => n.includes("상품") || n.includes("옵션")) ||
+          workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) {
+          alert("상품옵션 시트를 찾을 수 없습니다.");
+          return;
+        }
+
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        // 테이블 초기화 후 로드
+        clearTable();
+        json.forEach(row => addRow({
+          상품명: row["상품명"],
+          판매가: row["판매가"],
+          색상:   row["색상"],
+          사이즈: row["사이즈"],
+          ["1번 상품명"]: row["1번 상품명"],
+          품절된조합: row["품절된 조합"] || "",
+          제외: row["제외"] === "Y" || row["제외"] === true
+        }));
+
+        // 미리보기 및 유효성 갱신(네가 이미 쓰는 훅들 그대로 활용)
+        Array.from(document.querySelectorAll('#inputTable tbody tr')).forEach(tr => {
+          updateOptionPreviewForRow(tr);
+        });
+        originalData = getDataFromTable();
+        highlightInvalidOptions();
+
+        // 파일명 표시
+        const nameSpan = document.getElementById('fileName');
+        if (nameSpan) nameSpan.textContent = file.name;
+
+      } catch (err) {
+        console.error(err);
+        alert("파일을 읽는 중 오류가 발생했습니다. 파일 형식을 확인해주세요.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+})();
+
   </script>
 </body>
 </html>
