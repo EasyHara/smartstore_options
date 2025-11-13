@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>스마트스토어 옵션</title>
+  <title>스마트스토어 옵션 자동 생성기</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
@@ -626,7 +626,6 @@
 // 
 // ───────────────────────────────────────────────────────────── 
 // [개선] IIFE (즉시 실행 함수)
-// 전체 스크립트를 IIFE로 감싸 전역 스코프 오염을 방지합니다.
 // ───────────────────────────────────────────────────────────── 
 //
 (function() {
@@ -798,20 +797,23 @@
 
   });
 
-  // 클릭 핸들러: Ctrl/Cmd+클릭 시 selected 클래스 토글
+  // 
+  // ───────────────────────────────────────────────────────────── 
+  // [💥💥 버그 수정 💥💥]
+  // Sortable.js의 자체 Ctrl+Click 기능과 충돌하던
+  // onRowClick 함수를 완전히 삭제합니다.
+  // ───────────────────────────────────────────────────────────── 
+  //
+  /*
   function onRowClick(e) {
-    // [개선] label이나 input 클릭 시 이벤트 전파 중지 (Sortable과 충돌 방지)
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
-        // e.stopPropagation(); // <-- SortableJS와 충돌하면 이 주석을 푸세요
         return;
     }
     if (e.ctrlKey || e.metaKey) {
         this.classList.toggle('selected');
     }
   }
-
-  //파일선택시 입력한 파일명 출력 (DOMContentLoaded 안의 핸들러로 이동 통합함)
-  // document.getElementById('inputFile').addEventListener('change', function(e){...});
+  */
 
   // 할인률 인풋 클릭 시 100이면 자동으로 지움
   document.getElementById('discountRate').addEventListener('focus', function(e) {
@@ -825,6 +827,7 @@
   // 
   // ───────────────────────────────────────────────────────────── 
   // [리팩토링] addRow: 안정성을 위해 input에 class 추가
+  // [💥💥 버그 수정 💥💥] onRowClick 리스너 연결 코드를 삭제합니다.
   // ───────────────────────────────────────────────────────────── 
   //
   function addRow(data = {}) {
@@ -856,8 +859,8 @@
     `;
     
     // 클릭/입력 등 이벤트 바인딩
-    row.addEventListener('click', onRowClick);
-
+    // row.addEventListener('click', onRowClick); // <-- [💥 버그 수정] 이 라인을 삭제
+    
     row.querySelectorAll('input').forEach(input => {
       input.addEventListener('input', function(){
         updateOptionPreviewForRow(row);
@@ -882,13 +885,17 @@
     updateOptionPreviewForRow(row);
   }
 
-
-// core + plugin 모두 로드된 이후에 한 번만 실행
+  // 
+  // ───────────────────────────────────────────────────────────── 
+  // [✅ 최종 버그 수정]
+  // preventOnFilter: false로 설정하여
+  // 필터된 요소(input, label)의 기본 동작(입력, 클릭)을 '허용'합니다.
+  // ───────────────────────────────────────────────────────────── 
+  //
   Sortable.create(document.querySelector('#inputTable tbody'), {
     animation: 150,
-    // handle: 'td', // <-- 이 라인을 삭제하거나 주석 처리합니다.
     filter: 'input, label', // input이나 label 클릭 시 드래그 방지
-    preventOnFilter: true,  // filter된 요소의 기본 동작(입력) 허용
+    preventOnFilter: false,  // <-- ✅ 'false'로 수정해야 입력이 가능합니다.
     multiDrag: true,
     selectedClass: 'selected',
     multiDragKey: 'ctrl',
@@ -2361,7 +2368,7 @@
             사이즈: row["사이즈"],
             ["1번 상품명"]: row["1번 상품명"],
             품절된조합: row["품절된 조합"] || "",
-            제외: row["제외"] === "Y" || row["제M"] === true // [오타수정] "제M" -> "제외"
+            제외: row["제외"] === "Y" || row["제외"] === true // [오타수정] "제M" -> "제외"
           }));
 
           // 미리보기 및 유효성 갱신
