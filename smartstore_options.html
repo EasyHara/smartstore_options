@@ -1955,8 +1955,8 @@
       XLSX.utils.book_append_sheet(wb, ws, "단품옵션");
       const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
       const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-      zip.file(`단품등록_${safeFileName}.xls`, wbout);
-    });
+      zip.file(`${safeFileName}(단품).xls`, wbout);
+});
 
     zip.generateAsync({ type: "blob" }).then(content => {
       saveAs(content, "단품등록_전체다운로드.zip");
