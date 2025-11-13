@@ -1840,7 +1840,7 @@
 
     const safeFileName = (대표.상품명 || "단품등록").replace(/[\/:*?"<>|]/g, "").trim();
     const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
-    saveAs(new Blob([wbout], { type: "application/octet-stream" }), `단품등록_${safeFileName}.xls`);
+    saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${safeFileName}(단품).xls`);
   }
 
 
