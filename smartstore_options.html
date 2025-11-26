@@ -544,16 +544,19 @@
       </div>
       
       <div class="option-group">
-        <span>옵션 노출 방식:</span>
-        <input type="radio" name="optionDisplay" value="both" id="opt-both" checked>
-        <label for="opt-both">색상&사이즈 모두</label>
-        <input type="radio" name="optionDisplay" value="colorOnly" id="opt-color">
-        <label for="opt-color">색상만</label>
-        <input type="radio" name="optionDisplay" value="sizeOnly" id="opt-size">
-        <label for="opt-size">사이즈만</label>
-        <input type="radio" name="optionDisplay" value="nameOnly" id="opt-name">
-        <label for="opt-name">상품명만</label>
-      </div>
+  <span>옵션 노출 방식:</span>
+  <input type="radio" name="optionDisplay" value="both" id="opt-both" checked>
+  <label for="opt-both">색상&사이즈 모두</label>
+  <input type="radio" name="optionDisplay" value="colorOnly" id="opt-color">
+  <label for="opt-color">색상만</label>
+  <input type="radio" name="optionDisplay" value="sizeOnly" id="opt-size">
+  <label for="opt-size">사이즈만</label>
+  <input type="radio" name="optionDisplay" value="nameOnly" id="opt-name">
+  <label for="opt-name">상품명만</label>
+
+  <span style="margin-left: 20px;">순번 스타일:</span>
+  <input type="text" id="seqStyleInput" value="00) " style="width:100px; text-align:center;" placeholder="예: 00) ">
+  </div>
       
       <div class="price-group">
         <span>옵션가 계산 할인률</span>
@@ -1199,44 +1202,273 @@
     return code;
   }
 
-  // 
-  // ───────────────────────────────────────────────────────────── 
-  // [버그 수정] 중복 선언되었던 함수 1 (이것 하나만 남김)
-  // ───────────────────────────────────────────────────────────── 
-  //
-  function downloadRepresentative() {
-    const rows = getDataFromTable().filter(r => !r.제외);
-    if (!rows.length) {
-      alert("출력할 데이터가 없습니다.");
-      return;
+  // [수정] 선택상품 엑셀 다운로드 (순번 스타일 적용)
+function downloadRepresentative() {
+  const rows = getDataFromTable().filter(r => !r.제외);
+  if (!rows.length) {
+    alert("출력할 데이터가 없습니다.");
+    return;
+  }
+
+  const hideBrand         = document.getElementById("hideBrand").checked;
+  const discountRate      = parseFloat(document.getElementById("discountRate").value) || 0;
+  const mode              = getOptionDisplayMode(); 
+  const useAllFirstName   = document.getElementById('allFirstName')?.checked;
+  const appendCode        = document.getElementById('appendCodeToSize')?.checked;
+  const splitProductCode  = document.getElementById('splitProductCode')?.checked;
+  const freeShipping      = document.getElementById('freeShippingOption')?.checked;
+  
+  // ▼▼▼ [신규] 순번 스타일 가져오기
+  const seqPattern = document.getElementById('seqStyleInput').value; 
+  // ▲▲▲
+
+  // 무료배송 관련 변수
+  const freeShippingAmount = parseFloat(document.getElementById('freeShippingAmount')?.value) || 0;
+  const freeShippingType = document.getElementById('freeShippingType')?.value || 'won';
+
+  const master       = rows.find(r => r.대표) || rows[0];
+  const masterPrice = calculateOriginalPrice(master.판매가, discountRate);
+
+  const ordered = [ master, ...rows.filter(r => r !== master) ];
+  const data = [];
+  let groupIndex = 0;
+
+  ordered.forEach(item => {
+    const diff      = item.판매가 - master.판매가;
+    const colors    = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+    const sizes     = expandSizes(item.사이즈).length ? expandSizes(item.사이즈) : [""];
+    const itemInfo = parseBrandProductType(item.상품명);
+
+    const manageCodes = itemInfo.manageCodes || [];
+    const colorCount  = colors.length;
+    const codeList    = [];
+    for (let i = 0; i < colorCount; i++) {
+      codeList.push(manageCodes[i] || manageCodes[manageCodes.length - 1] || item.상품명);
     }
 
-    const hideBrand        = document.getElementById("hideBrand").checked;
-    const discountRate     = parseFloat(document.getElementById("discountRate").value) || 0;
-    const mode             = getOptionDisplayMode(); // both/colorOnly/sizeOnly/nameOnly
-    const useAllFirstName  = document.getElementById('allFirstName')?.checked;
-    const appendCode       = document.getElementById('appendCodeToSize')?.checked;
-    const splitProductCode = document.getElementById('splitProductCode')?.checked;
-    const freeShipping     = document.getElementById('freeShippingOption')?.checked;
+    const isMaster = (item === master);
+    const baseName = buildBaseName(item, itemInfo, !!useAllFirstName, isMaster);
+    
+    // 무료배송비 적용 옵션가 계산
+    let optionPrice;
+    if (freeShipping && !isMaster) {
+      if (freeShippingType === 'percent') {
+        optionPrice = diff + (master.판매가 * (freeShippingAmount / 100));
+      } else { 
+        optionPrice = diff + freeShippingAmount;
+      }
+    } else {
+      optionPrice = diff;
+    }
 
-    // 무료배송 로직을 위한 변수 선언
-    const freeShippingAmount = parseFloat(document.getElementById('freeShippingAmount')?.value) || 0;
-    const freeShippingType = document.getElementById('freeShippingType')?.value || 'won';
+    // 규정 체크
+    let isValidGroup;
+    if (mode === "nameOnly") {
+      isValidGroup = isValidOptionPrice(masterPrice, optionPrice);
+    } else {
+      isValidGroup = colors.some(col => sizes.some(sz => isValidOptionPrice(masterPrice, optionPrice)));
+    }
+    if (!isValidGroup) return;
 
-    const master      = rows.find(r => r.대표) || rows[0];
-    const masterPrice = calculateOriginalPrice(master.판매가, discountRate);
+    groupIndex++;
+    
+    // ▼▼▼ [수정] 순번 문자열 생성 (예: "01) ")
+    const seqStr = formatSequence(groupIndex, seqPattern);
+    // ▲▲▲
 
-    const ordered = [ master, ...rows.filter(r => r !== master) ];
+    if (mode === "both") {
+      colors.forEach((col, colIdx) => {
+        sizes.forEach(sz => {
+          let szCode = sz;
+          if (appendCode && itemInfo.codes && itemInfo.codes.length) {
+            szCode += " / " + (itemInfo.codes[colIdx] || itemInfo.codes[itemInfo.codes.length - 1] || "");
+          }
+
+          const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+          let manageCode;
+          if (soldoutArr.includes("단종")) {
+            manageCode = getDiscontinuedManageCodeByName(item.상품명);
+          } else if (splitProductCode) {
+            manageCode = codeList[colIdx];
+            if (manageCode.replace(/\s/g, '').length > 20) {
+              manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
+            }
+          } else {
+            manageCode = item.상품명;
+          }
+
+          let 품절 = false;
+          if (item.품절된조합) {
+            const s = soldoutArr;
+            품절 = s.includes("단종") || s.includes("품절") || s.includes(col) || s.includes(sz) || s.includes(`${col}-${sz}`);
+          }
+
+          data.push({
+            제품선택: `${seqStr}${baseName}${col ? ` / ${col}` : ""}`,
+            사이즈:   szCode,
+            옵션가:    optionPrice,
+            재고수량:  품절 ? 0 : 99999,
+            관리코드:  manageCode,
+            사용여부:  "Y"
+          });
+        });
+      });
+    } else if (mode === "colorOnly") {
+      colors.forEach((col, colIdx) => {
+        const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+        let manageCode;
+        if (soldoutArr.includes("단종")) {
+          manageCode = getDiscontinuedManageCodeByName(item.상품명);
+        } else if (splitProductCode) {
+          manageCode = codeList[colIdx];
+          if (manageCode.replace(/\s/g, '').length > 20) {
+            manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
+          }
+        } else {
+          manageCode = item.상품명;
+        }
+        let 품절 = false;
+        if (item.품절된조합) {
+          const s = soldoutArr;
+          품절 = s.includes("단종") || s.includes("품절") || s.includes(col);
+        }
+
+        data.push({
+          제품선택: `${seqStr}${baseName}`,
+          색상:     col,
+          옵션가:    optionPrice,
+          재고수량:  품절 ? 0 : 99999,
+          관리코드:  manageCode,
+          사용여부:  "Y"
+        });
+      });
+    } else if (mode === "sizeOnly") {
+      sizes.forEach(sz => {
+        let szCode = sz;
+        if (appendCode && itemInfo.codes && itemInfo.codes.length) {
+          szCode += " / " + (itemInfo.codes[0] || "");
+        }
+
+        const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+        let manageCode;
+        if (soldoutArr.includes("단종")) {
+          manageCode = getDiscontinuedManageCodeByName(item.상품명);
+        } else if (splitProductCode) {
+          manageCode = codeList[0];
+          if (manageCode.replace(/\s/g, '').length > 20) {
+            manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
+          }
+        } else {
+          manageCode = item.상품명;
+        }
+        let 품절 = false;
+        if (item.품절된조합) {
+          const s = soldoutArr;
+          품절 = s.includes("단종") || s.includes("품절") || s.includes(sz);
+        }
+
+        data.push({
+          제품선택: `${seqStr}${baseName}`,
+          사이즈:   szCode,
+          옵션가:    optionPrice,
+          재고수량:  품절 ? 0 : 99999,
+          관리코드:  manageCode,
+          사용여부:  "Y"
+        });
+      });
+    } else if (mode === "nameOnly") {
+      const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+
+      let manageCode;
+      if (soldoutArr.includes("단종")) {
+        manageCode = getDiscontinuedManageCodeByName(item.상품명);
+      } else if (splitProductCode) {
+        const mCodes = parseBrandProductType(item.상품명).manageCodes || [];
+        manageCode = mCodes[0] || item.상품명;
+        if (manageCode.replace(/\s/g, '').length > 20) {
+          manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
+        }
+      } else {
+        manageCode = item.상품명;
+      }
+
+      const soldout = soldoutArr.includes("단종") || soldoutArr.includes("품절");
+
+      data.push({
+        제품선택: `${seqStr}${baseName}`,
+        옵션가:    optionPrice,
+        재고수량:  soldout ? 0 : 99999,
+        관리코드:  manageCode,
+        사용여부:  "Y"
+      });
+    }
+  });
+
+  // 브랜드 숨기기 & 25자 보정
+  data.forEach(item => {
+    if (hideBrand) {
+       // 순번이 있어도 브랜드명(첫 단어) 제거 시도
+       item.제품선택 = item.제품선택.replace(/^(\d+\)\s*)\S+\s/, "$1");
+    }
+    if (item.제품선택.length > 25) item.제품선택 = item.제품선택.replace(/ \/ /g, "/");
+  });
+
+  // 파일 저장
+  let safeName = (master.상품명 || "옵션데이터").replace(/[\\\/:*?"<>|]/g, "").trim();
+  if (freeShipping) safeName += "-무배";
+
+  const header = ["제품선택"];
+  if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
+  if (mode === "colorOnly") header.push("색상");
+  header.push("옵션가","재고수량","관리코드","사용여부");
+
+  const ws = XLSX.utils.json_to_sheet(data, { header });
+  autoWidth(ws, data, header);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
+  const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${safeName}.xls`);
+}
+
+  // [수정] 일괄 ZIP 다운로드 (순번 스타일 적용)
+function generateZip() {
+  const rows = getDataFromTable().filter(r => !r.제외);
+  if (!rows.length) {
+    alert("출력할 데이터가 없습니다.");
+    return;
+  }
+
+  const hideBrand         = document.getElementById("hideBrand").checked;
+  const discountRate      = parseFloat(document.getElementById("discountRate").value) || 0;
+  const mode              = getOptionDisplayMode(); // both/colorOnly/sizeOnly/nameOnly
+  const zip               = new JSZip();
+  const useAllFirstName   = document.getElementById('allFirstName')?.checked;
+  const appendCode        = document.getElementById('appendCodeToSize')?.checked;
+  const splitProductCode  = document.getElementById('splitProductCode')?.checked;
+  const freeShipping      = document.getElementById('freeShippingOption')?.checked;
+
+  // ▼▼▼ [신규] 순번 스타일 가져오기
+  const seqPattern = document.getElementById('seqStyleInput').value;
+  // ▲▲▲
+
+  // 무료배송 관련 변수
+  const freeShippingAmount = parseFloat(document.getElementById('freeShippingAmount')?.value) || 0;
+  const freeShippingType = document.getElementById('freeShippingType')?.value || 'won';
+
+  rows.forEach(repr => {
+    const reprInfo    = parseBrandProductType(repr.상품명);
+    const masterPrice = calculateOriginalPrice(repr.판매가, discountRate);
+
+    const ordered = [ repr, ...rows.filter(r => r !== repr) ];
     const data = [];
     let groupIndex = 0;
 
     ordered.forEach(item => {
-      const diff     = item.판매가 - master.판매가;
-      const colors   = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
-      const sizes    = expandSizes(item.사이즈).length ? expandSizes(item.사이즈) : [""];
+      const diff      = item.판매가 - repr.판매가;
+      const colors    = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
+      const sizes     = expandSizes(item.사이즈).length ? expandSizes(item.사이즈) : [""];
       const itemInfo = parseBrandProductType(item.상품명);
 
-      // 색상수와 관리코드수 1:1 매칭
       const manageCodes = itemInfo.manageCodes || [];
       const colorCount  = colors.length;
       const codeList    = [];
@@ -1244,23 +1476,22 @@
         codeList.push(manageCodes[i] || manageCodes[manageCodes.length - 1] || item.상품명);
       }
 
-      // ✅ 중복 브랜드 방지된 baseName
-      const isMaster = (item === master);
+      const isMaster = (item === repr);
       const baseName = buildBaseName(item, itemInfo, !!useAllFirstName, isMaster);
-    
-      // 무료배송 금액 계산 로직
+
+      // 무료배송비 적용 옵션가 계산
       let optionPrice;
       if (freeShipping && !isMaster) {
         if (freeShippingType === 'percent') {
-          optionPrice = diff + (master.판매가 * (freeShippingAmount / 100));
-        } else { // 'won'
+          optionPrice = diff + (repr.판매가 * (freeShippingAmount / 100));
+        } else { 
           optionPrice = diff + freeShippingAmount;
         }
       } else {
         optionPrice = diff;
       }
 
-      // --- 규정 체크 (최종 옵션가 기준) ---
+      // 규정 체크
       let isValidGroup;
       if (mode === "nameOnly") {
         isValidGroup = isValidOptionPrice(masterPrice, optionPrice);
@@ -1270,14 +1501,17 @@
       if (!isValidGroup) return;
 
       groupIndex++;
-      const seq = String(groupIndex).padStart(2, "0");
+      
+      // ▼▼▼ [수정] 순번 문자열 생성 (예: "01) ")
+      const seqStr = formatSequence(groupIndex, seqPattern);
+      // ▲▲▲
 
       if (mode === "both") {
         colors.forEach((col, colIdx) => {
           sizes.forEach(sz => {
             let szCode = sz;
             if (appendCode && itemInfo.codes && itemInfo.codes.length) {
-              szCode += " / " + (itemInfo.codes[colIdx] || itemInfo.codes[itemInfo.codes.length - 1] || "");
+              szCode += " / " + (itemInfo.codes[colIdx] || itemInfo.codes[itemInfo.codes.length-1] || "");
             }
 
             const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
@@ -1300,7 +1534,7 @@
             }
 
             data.push({
-              제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
+              제품선택: `${seqStr}${baseName}${col ? ` / ${col}` : ""}`,
               사이즈:   szCode,
               옵션가:    optionPrice,
               재고수량:  품절 ? 0 : 99999,
@@ -1323,6 +1557,7 @@
           } else {
             manageCode = item.상품명;
           }
+
           let 품절 = false;
           if (item.품절된조합) {
             const s = soldoutArr;
@@ -1330,7 +1565,7 @@
           }
 
           data.push({
-            제품선택: `${seq}) ${baseName}`,
+            제품선택: `${seqStr}${baseName}`,
             색상:     col,
             옵션가:    optionPrice,
             재고수량:  품절 ? 0 : 99999,
@@ -1364,7 +1599,7 @@
           }
 
           data.push({
-            제품선택: `${seq}) ${baseName}`,
+            제품선택: `${seqStr}${baseName}`,
             사이즈:   szCode,
             옵션가:    optionPrice,
             재고수량:  품절 ? 0 : 99999,
@@ -1391,7 +1626,7 @@
         const soldout = soldoutArr.includes("단종") || soldoutArr.includes("품절");
 
         data.push({
-          제품선택: `${seq}) ${baseName}`,
+          제품선택: `${seqStr}${baseName}`,
           옵션가:    optionPrice,
           재고수량:  soldout ? 0 : 99999,
           관리코드:  manageCode,
@@ -1400,337 +1635,111 @@
       }
     });
 
-    // --- 브랜드 숨기기 & 25자 보정 ---
+    // 브랜드 숨기기 & 25자 보정
     data.forEach(item => {
       if (hideBrand) {
         item.제품선택 = item.제품선택.replace(/^(\d+\)\s*)\S+\s/, "$1");
       }
       if (item.제품선택.length > 25) item.제품선택 = item.제품선택.replace(/ \/ /g, "/");
-      if (item.제품선택.length > 25) item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, "$1");
     });
 
     // 파일명 (-무배)
-    let safeName = (master.상품명 || "옵션데이터").replace(/[\\\/:*?"<>|]/g, "").trim();
+    let safeName = (repr.상품명 || "옵션데이터").replace(/[\\\/:*?"<>|]/g, "").trim();
     if (freeShipping) safeName += "-무배";
 
-    // 헤더 구성
+    // 헤더
     const header = ["제품선택"];
     if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
     if (mode === "colorOnly") header.push("색상");
-    header.push("옵션가","재고수량","관리코드","사용여부");
+    header.push("옵션가", "재고수량", "관리코드", "사용여부");
 
     const ws = XLSX.utils.json_to_sheet(data, { header });
     autoWidth(ws, data, header);
-    const wb = XLSX.utils.book_new();
+    const wb   = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-    const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
-    saveAs(new Blob([wbout], { type: "application/octet-stream" }), `${safeName}.xls`);
+    const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
+
+    zip.file(`${safeName}.xls`, blob);
+  });
+
+  zip.generateAsync({ type: "blob" })
+    .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
+}
+
+  // [수정] 추가상품 엑셀 다운로드 (순번 스타일 적용)
+function downloadAddProductExcel() {
+  const mode = getOptionDisplayMode();
+  const rows = getDataFromTable().filter(r => !r.제외);
+  if (!rows.length) {
+    return alert("출력할 데이터가 없습니다.");
   }
 
-  // 
-  // ───────────────────────────────────────────────────────────── 
-  // [버그 수정] 중복 선언되었던 함수 2 (이것 하나만 남김)
-  // ───────────────────────────────────────────────────────────── 
-  //
-  function generateZip() {
-    const rows = getDataFromTable().filter(r => !r.제외);
-    if (!rows.length) {
-      alert("출력할 데이터가 없습니다.");
-      return;
-    }
+  // ▼▼▼ [신규] 순번 스타일 가져오기
+  const seqPattern = document.getElementById('seqStyleInput').value;
+  // ▲▲▲
 
-    const hideBrand        = document.getElementById("hideBrand").checked;
-    const discountRate     = parseFloat(document.getElementById("discountRate").value) || 0;
-    const mode             = getOptionDisplayMode(); // both/colorOnly/sizeOnly/nameOnly
-    const zip              = new JSZip();
-    const useAllFirstName  = document.getElementById('allFirstName')?.checked;
-    const appendCode       = document.getElementById('appendCodeToSize')?.checked;
-    const splitProductCode = document.getElementById('splitProductCode')?.checked;
-    const freeShipping     = document.getElementById('freeShippingOption')?.checked;
+  // 1) 대표 상품 앞으로
+  const 대표 = rows.find(r => r.대표) || rows[0];
+  const items = [대표, ...rows.filter(r => r !== 대표)];
 
-    // 무료배송 로직을 위한 변수 선언
-    const freeShippingAmount = parseFloat(document.getElementById('freeShippingAmount')?.value) || 0;
-    const freeShippingType = document.getElementById('freeShippingType')?.value || 'won';
+  // 2) 데이터 배열 채우기
+  let data = [];
+  items.forEach((item, idx) => {
+    // ▼▼▼ [수정] formatSequence로 순번 문자열 생성
+    const seqStr = formatSequence(idx + 1, seqPattern);
+    // ▲▲▲
+    
+    const colors = parseOptions(item.색상);
+    const sizes  = expandSizes(item.사이즈);
+    const cols   = colors.length ? colors : [""];
+    const szs    = sizes.length  ? sizes  : [""];
 
-    rows.forEach(repr => {
-      const reprInfo    = parseBrandProductType(repr.상품명);
-      const masterPrice = calculateOriginalPrice(repr.판매가, discountRate);
+    cols.forEach(col => {
+      szs.forEach(sz => {
+        // ▼▼▼ [수정] applyOptionMode에 변환된 순번 문자열 전달
+        const opt = applyOptionMode(item.상품명, col, sz, seqStr);
+        // ▲▲▲
 
-      const ordered = [ repr, ...rows.filter(r => r !== repr) ];
-      const data = [];
-      let groupIndex = 0;
-
-      ordered.forEach(item => {
-        const diff     = item.판매가 - repr.판매가;
-        const colors   = parseOptions(item.색상).length ? parseOptions(item.색상) : [""];
-        const sizes    = expandSizes(item.사이즈).length ? expandSizes(item.사이즈) : [""];
-        const itemInfo = parseBrandProductType(item.상품명);
-
-        // 색상수와 관리코드수 1:1 매칭
-        const manageCodes = itemInfo.manageCodes || [];
-        const colorCount  = colors.length;
-        const codeList    = [];
-        for (let i = 0; i < colorCount; i++) {
-          codeList.push(manageCodes[i] || manageCodes[manageCodes.length - 1] || item.상품명);
-        }
-
-        // ✅ 중복 브랜드 방지된 baseName
-        const isMaster = (item === repr);
-        const baseName = buildBaseName(item, itemInfo, !!useAllFirstName, isMaster);
-
-        // 무료배송 금액 계산 로직
-        let optionPrice;
-        if (freeShipping && !isMaster) {
-          if (freeShippingType === 'percent') {
-            optionPrice = diff + (repr.판매가 * (freeShippingAmount / 100));
-          } else { // 'won'
-            optionPrice = diff + freeShippingAmount;
-          }
+        // 관리코드 단종 처리
+        const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
+        let manageCode;
+        if (soldoutArr.includes("단종")) {
+          manageCode = getDiscontinuedManageCodeByName(item.상품명);
         } else {
-          optionPrice = diff;
+          manageCode = item.상품명;
         }
-
-        // --- 규정 체크 ---
-        let isValidGroup;
-        if (mode === "nameOnly") {
-          isValidGroup = isValidOptionPrice(masterPrice, optionPrice);
-        } else {
-          isValidGroup = colors.some(col => sizes.some(sz => isValidOptionPrice(masterPrice, optionPrice)));
-        }
-        if (!isValidGroup) return;
-
-        groupIndex++;
-        const seq = String(groupIndex).padStart(2, "0");
-
-        if (mode === "both") {
-          colors.forEach((col, colIdx) => {
-            sizes.forEach(sz => {
-              let szCode = sz;
-              if (appendCode && itemInfo.codes && itemInfo.codes.length) {
-                szCode += " / " + (itemInfo.codes[colIdx] || itemInfo.codes[itemInfo.codes.length-1] || "");
-              }
-
-              const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-              let manageCode;
-              if (soldoutArr.includes("단종")) {
-                manageCode = getDiscontinuedManageCodeByName(item.상품명);
-              } else if (splitProductCode) {
-                manageCode = codeList[colIdx];
-                if (manageCode.replace(/\s/g, '').length > 20) {
-                  manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
-                }
-              } else {
-                manageCode = item.상품명;
-              }
-
-              let 품절 = false;
-              if (item.품절된조합) {
-                const s = soldoutArr;
-                품절 = s.includes("단종") || s.includes("품절") || s.includes(col) || s.includes(sz) || s.includes(`${col}-${sz}`);
-              }
-
-              data.push({
-                제품선택: `${seq}) ${baseName}${col ? ` / ${col}` : ""}`,
-                사이즈:   szCode,
-                옵션가:    optionPrice,
-                재고수량:  품절 ? 0 : 99999,
-                관리코드:  manageCode,
-                사용여부:  "Y"
-              });
-            });
-          });
-        } else if (mode === "colorOnly") {
-          colors.forEach((col, colIdx) => {
-            const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-            let manageCode;
-            if (soldoutArr.includes("단종")) {
-              manageCode = getDiscontinuedManageCodeByName(item.상품명);
-            } else if (splitProductCode) {
-              manageCode = codeList[colIdx];
-              if (manageCode.replace(/\s/g, '').length > 20) {
-                manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
-              }
-            } else {
-              manageCode = item.상품명;
-            }
-
-            let 품절 = false;
-            if (item.품절된조합) {
-              const s = soldoutArr;
-              품절 = s.includes("단종") || s.includes("품절") || s.includes(col);
-            }
-
-            data.push({
-              제품선택: `${seq}) ${baseName}`,
-              색상:     col,
-              옵션가:    optionPrice,
-              재고수량:  품절 ? 0 : 99999,
-              관리코드:  manageCode,
-              사용여부:  "Y"
-            });
-          });
-        } else if (mode === "sizeOnly") {
-          sizes.forEach(sz => {
-            let szCode = sz;
-            if (appendCode && itemInfo.codes && itemInfo.codes.length) {
-              szCode += " / " + (itemInfo.codes[0] || "");
-            }
-
-            const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-            let manageCode;
-            if (soldoutArr.includes("단종")) {
-              manageCode = getDiscontinuedManageCodeByName(item.상품명);
-            } else if (splitProductCode) {
-              manageCode = codeList[0];
-              if (manageCode.replace(/\s/g, '').length > 20) {
-                manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
-              }
-            } else {
-              manageCode = item.상품명;
-            }
-            let 품절 = false;
-            if (item.품절된조합) {
-              const s = soldoutArr;
-              품절 = s.includes("단종") || s.includes("품절") || s.includes(sz);
-            }
-
-            data.push({
-              제품선택: `${seq}) ${baseName}`,
-              사이즈:   szCode,
-              옵션가:    optionPrice,
-              재고수량:  품절 ? 0 : 99999,
-              관리코드:  manageCode,
-              사용여부:  "Y"
-            });
-          });
-        } else if (mode === "nameOnly") {
-          const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-
-          let manageCode;
-          if (soldoutArr.includes("단종")) {
-            manageCode = getDiscontinuedManageCodeByName(item.상품명);
-          } else if (splitProductCode) {
-            const mCodes = parseBrandProductType(item.상품명).manageCodes || [];
-            manageCode = mCodes[0] || item.상품명;
-            if (manageCode.replace(/\s/g, '').length > 20) {
-              manageCode = manageCode.replace(/\s/g, '').slice(0, 20);
-            }
-          } else {
-            manageCode = item.상품명;
-          }
-
-          const soldout = soldoutArr.includes("단종") || soldoutArr.includes("품절");
-
-          data.push({
-            제품선택: `${seq}) ${baseName}`,
-            옵션가:    optionPrice,
-            재고수량:  soldout ? 0 : 99999,
-            관리코드:  manageCode,
-            사용여부:  "Y"
-          });
-        }
-      });
-
-      // --- 브랜드 숨기기 & 25자 보정 ---
-      data.forEach(item => {
-        if (hideBrand) {
-          item.제품선택 = item.제품선택.replace(/^(\d+\)\s*)\S+\s/, "$1");
-        }
-        if (item.제품선택.length > 25) item.제품선택 = item.제품선택.replace(/ \/ /g, "/");
-        if (item.제품선택.length > 25) item.제품선택 = item.제품선택.replace(/^(\d+\))\s/, "$1");
-      });
-
-      // 파일명 (-무배)
-      let safeName = (repr.상품명 || "옵션데이터").replace(/[\\\/:*?"<>|]/g, "").trim();
-      if (freeShipping) safeName += "-무배";
-
-      // 헤더
-      const header = ["제품선택"];
-      if (mode === "both" || mode === "sizeOnly") header.push("사이즈");
-      if (mode === "colorOnly") header.push("색상");
-      header.push("옵션가", "재고수량", "관리코드", "사용여부");
-
-      const ws = XLSX.utils.json_to_sheet(data, { header });
-      autoWidth(ws, data, header);
-      const wb   = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "옵션데이터");
-      const blob = XLSX.write(wb, { bookType: "xls", type: "array" });
-
-      zip.file(`${safeName}.xls`, blob);
-    });
-
-    zip.generateAsync({ type: "blob" })
-      .then(content => saveAs(content, "옵션_일괄다운로드.zip"));
-  }
-
-  //
-  // (참고) 중복 선언되었던 2개의 함수는 위에서 수정되어 제거되었습니다.
-  //
-
-  // 추가상품 엑셀 다운로드 (모든 제외되지 않은 상품 포함)
-  function downloadAddProductExcel() {
-    const mode = getOptionDisplayMode();
-    const rows = getDataFromTable().filter(r => !r.제외);
-    if (!rows.length) {
-      return alert("출력할 데이터가 없습니다.");
-    }
-
-    // 1) 대표 상품 앞으로
-    const 대표 = rows.find(r => r.대표) || rows[0];
-    const items = [대표, ...rows.filter(r => r !== 대표)];
-
-    // 2) 데이터 배열 채우기
-    let data = [];
-    items.forEach((item, idx) => {
-      const seq    = String(idx+1).padStart(2, "0");
-      const colors = parseOptions(item.색상);
-      const sizes  = expandSizes(item.사이즈);
-      const cols   = colors.length ? colors : [""];
-      const szs    = sizes.length  ? sizes  : [""];
-
-      cols.forEach(col => {
-        szs.forEach(sz => {
-          const opt = applyOptionMode(item.상품명, col, sz, seq);
-          // 관리코드 단종 처리
-          const soldoutArr = (item.품절된조합 || '').split(/[,\s/]+/).map(v=>v.trim()).filter(Boolean);
-          let manageCode;
-          if (soldoutArr.includes("단종")) {
-            manageCode = getDiscontinuedManageCodeByName(item.상품명);
-          } else {
-            manageCode = item.상품명;
-          }
-          data.push({
-            추가상품명: "제품선택",
-            추가상품값: opt.제품선택,
-            추가상품가: item.판매가,
-            재고수량: 99999,
-            사용여부: "Y",
-            관리코드: manageCode
-          });
+        data.push({
+          추가상품명: "제품선택",
+          추가상품값: opt.제품선택,
+          추가상품가: item.판매가,
+          재고수량: 99999,
+          사용여부: "Y",
+          관리코드: manageCode
         });
       });
     });
+  });
 
-    // 3) 중복 제거
-    data = data.filter((row,i) =>
-      data.findIndex(r => r.추가상품값 === row.추가상품값) === i
-    );
+  // 3) 중복 제거
+  data = data.filter((row,i) =>
+    data.findIndex(r => r.추가상품값 === row.추가상품값) === i
+  );
 
-    // 4) 안전한 파일명
-    const safeName = 대표.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
+  // 4) 안전한 파일명
+  const safeName = 대표.상품명.replace(/[\\\/:*?"<>|]/g, "").trim();
 
-    // 5) 워크북 생성 & 다운로드
-    const header = [
-      "추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"
-    ];
-    const ws    = XLSX.utils.json_to_sheet(data, { header });
-    autoWidth(ws, data, header);
-    const wb    = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "추가상품");
-    const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
-    saveAs(new Blob([wbout], { type: "application/octet-stream" }),
-          `추가상품_${safeName}.xls`);
-  }
+  // 5) 워크북 생성 & 다운로드
+  const header = [
+    "추가상품명","추가상품값","추가상품가","재고수량","사용여부","관리코드"
+  ];
+  const ws    = XLSX.utils.json_to_sheet(data, { header });
+  autoWidth(ws, data, header);
+  const wb    = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "추가상품");
+  const wbout = XLSX.write(wb, { bookType: "xls", type: "array" });
+  saveAs(new Blob([wbout], { type: "application/octet-stream" }),
+        `추가상품_${safeName}.xls`);
+}
 
   // 단품등록용 엑셀 다운로드 - 대표상품만 순번 없이 출력
   // nameOnly 모드: 색상/사이즈 없이 제품명만 1행 생성
@@ -1971,22 +1980,40 @@
     return selected ? selected.value : "both";
   }  
 
+// [신규] 순번 포맷팅 함수
+  // pattern 예: "00) " -> "01) ", "No.00 " -> "No.01 "
+  function formatSequence(n, pattern) {
+    if (!pattern) pattern = "00) "; // 기본값
+    // '00'이 있으면 0을 채워서 변환 (01, 02...)
+    if (pattern.includes("00")) {
+      return pattern.replace("00", String(n).padStart(2, '0'));
+    }
+    // '0'만 있으면 그냥 숫자 변환 (1, 2...)
+    else if (pattern.includes("0")) {
+      return pattern.replace("0", String(n));
+    }
+    // 숫자가 없으면 그냥 뒤에 붙임
+    return pattern + n;
+  }
 
-  // (1) 옵션 구성 방식 적용 함수
-  function applyOptionMode(제품명, 색상, 사이즈, 순번) {
-    const prefix = 순번 ? `${순번}) ` : "";
+  // [수정] 옵션 구성 방식 적용 함수
+  function applyOptionMode(제품명, 색상, 사이즈, 순번문자열) {
+    // 기존: const prefix = 순번 ? `${순번}) ` : "";
+    // 수정: 순번문자열 자체가 이미 포맷팅된 상태로 넘어옴 ("01) " 등)
+    const prefix = 순번문자열 || ""; 
+    
     let 텍스트 = `${prefix}${제품명}`;
     const mode = getOptionDisplayMode();
 
     if (mode === "nameOnly") {
-      return { 제품선택: `${prefix}${제품명}` }; // ← 추가
+      return { 제품선택: 텍스트 };
     }
 
     if (mode === "both") {
       const parts = [];
       if (색상)  parts.push(색상);
       if (사이즈) parts.push(사이즈);
-      if (parts.length) 텍스트 += ` / ${parts.join(" ")}`;  // 블랙 FREE
+      if (parts.length) 텍스트 += ` / ${parts.join(" ")}`;
     }
     else if (mode === "colorOnly" && 색상) {
       텍스트 += ` / ${색상}`;
